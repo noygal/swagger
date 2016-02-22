@@ -11,6 +11,7 @@ function writeJsonToBody(res, json) {
 }
 
 Swagger = {
+  debug: false,
   handlers: [],
   registeredControllers: new Map(),
   controllerInstances: new Map(),
@@ -54,7 +55,7 @@ Swagger = {
       controller,
       operationId,
       context,
-      cb
+      cb: Meteor.bindEnvironment(cb)
     });
   },
 
