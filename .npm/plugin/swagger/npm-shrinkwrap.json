@@ -1,0 +1,20 @@
+{
+  "dependencies": {
+    "js-yaml": {
+      "version": "3.5.3",
+      "dependencies": {
+        "argparse": {
+          "version": "1.0.6",
+          "dependencies": {
+            "sprintf-js": {
+              "version": "1.0.3"
+            }
+          }
+        },
+        "esprima": {
+          "version": "2.7.2"
+        }
+      }
+    }
+  }
+}
