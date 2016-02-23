@@ -1,6 +1,6 @@
 Package.describe({
   name: 'guild:swagger',
-  version: '0.0.4',
+  version: '0.0.5',
   // Brief, one-line summary of the package.
   summary: 'Rest API based on swagger',
   // URL to the Git repository containing the source code for this package.
@@ -11,7 +11,8 @@ Package.describe({
 });
 
 Npm.depends({
-  'swagger-tools' : '0.9.15'
+  'swagger-tools' : '0.9.15',
+  'swagger-client': '2.1.11'
 });
 
 Package.registerBuildPlugin({

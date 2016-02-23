@@ -1,4 +1,5 @@
 let swaggerTools = Npm.require('swagger-tools');
+let swaggerClient = Npm.require('swagger-client');
 let url = Npm.require('url');
 
 function writeJsonToBody(res, json) {
@@ -15,6 +16,7 @@ Swagger = {
   handlers: [],
   registeredControllers: new Map(),
   controllerInstances: new Map(),
+  clients: new Map(),
 
   loadSwaggerDefinition (definition) {
     let parsedUrl = url.parse(Meteor.absoluteUrl());
@@ -55,7 +57,7 @@ Swagger = {
       controller,
       operationId,
       context,
-      cb: Meteor.bindEnvironment(cb)
+      cb
     });
   },
 
@@ -68,9 +70,9 @@ Swagger = {
 
     this.handlers.forEach(({controller, operationId, context, cb}) => {
       // TODO: Separate to private function and explain logic with links
-      controllers[`${controller}_${operationId}`] = function routeToHandler(req, res, next) {
+      controllers[`${controller}_${operationId}`] = Meteor.bindEnvironment(function routeToHandler(req, res, next) {
         let args = _.pluck(req.swagger.params, 'value');
-        let context = context || Swagger.controllerInstances.get(controller);
+        context = context || Swagger.controllerInstances.get(controller);
 
         try {
           let returnValue = cb.apply(context, args);
@@ -80,7 +82,7 @@ Swagger = {
         catch (error) {
           next(error);
         }
-      };
+      });
     });
 
     swaggerTools.initializeMiddleware(this.definition, (middleware) => {
@@ -92,5 +94,16 @@ Swagger = {
       }));
       WebApp.connectHandlers.use(middleware.swaggerUi());
     });
+  },
+
+  createClient(name, swaggerDoc) {
+    this.clients.set(name, new swaggerClient({
+      spec: swaggerDoc,
+      usePromise: true
+    }));
+  },
+
+  client(name) {
+    return this.clients.get(name);
   }
 };
