@@ -11,6 +11,10 @@ function writeJsonToBody(res, json) {
   }
 }
 
+function isPromise(obj) {
+  return !!obj && (typeof obj === 'object' || typeof obj === 'function') && typeof obj.then === 'function';
+}
+
 Swagger = {
   debug: false,
   handlers: [],
@@ -76,8 +80,18 @@ Swagger = {
 
         try {
           let returnValue = cb.apply(context, args);
-          writeJsonToBody(res, returnValue);
-          res.end();
+          if (isPromise(returnValue)) {
+            returnValue.then((result) => {
+                writeJsonToBody(res, result);
+              })
+              .catch((err) => {
+                next(err);
+              })
+          }
+          else {
+            writeJsonToBody(res, returnValue);
+            res.end();
+          }
         }
         catch (error) {
           next(error);
