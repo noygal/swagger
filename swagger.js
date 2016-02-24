@@ -83,6 +83,7 @@ Swagger = {
           if (isPromise(returnValue)) {
             returnValue.then((result) => {
                 writeJsonToBody(res, result);
+                res.end();
               })
               .catch((err) => {
                 next(err);
