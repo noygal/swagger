@@ -15,12 +15,30 @@ function isPromise(obj) {
   return !!obj && (typeof obj === 'object' || typeof obj === 'function') && typeof obj.then === 'function';
 }
 
+function handleError(res, err, next) {
+  if (err instanceof Swagger.Error) {
+    res.statusCode = err.httpCode;
+    writeJsonToBody(res, err.error);
+    res.end();
+  }
+  else {
+    next(err);
+  }
+}
+
 Swagger = {
   debug: false,
   handlers: [],
   registeredControllers: new Map(),
   controllerInstances: new Map(),
   clients: new Map(),
+
+  Error: class Error {
+    constructor(httpCode, error) {
+      this.httpCode = httpCode;
+      this.error = error;
+    }
+  },
 
   loadSwaggerDefinition (definition) {
     let parsedUrl = url.parse(Meteor.absoluteUrl());
@@ -86,7 +104,7 @@ Swagger = {
                 res.end();
               })
               .catch((err) => {
-                next(err);
+                handleError(res, err, next);
               })
           }
           else {
@@ -95,7 +113,7 @@ Swagger = {
           }
         }
         catch (error) {
-          next(error);
+          handleError(res, error, next);
         }
       });
     });
