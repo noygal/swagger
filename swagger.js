@@ -26,12 +26,17 @@ function handleError(res, err, next) {
   }
 }
 
+function inDevelopment() {
+  return process.env.NODE_ENV === "development";
+}
+
 Swagger = {
   debug: false,
   handlers: [],
   registeredControllers: new Map(),
   controllerInstances: new Map(),
   clients: new Map(),
+  definitions: new Map(),
 
   Error: class Error {
     constructor(httpCode, error) {
@@ -40,10 +45,10 @@ Swagger = {
     }
   },
 
-  loadSwaggerDefinition (definition) {
+  loadSwaggerDefinition (identifier, definition) {
     let parsedUrl = url.parse(Meteor.absoluteUrl());
     definition.host = `${parsedUrl.host}`;
-    this.definition = definition;
+    this.definitions.set(identifier, definition);
   },
 
   Controller (name) {
@@ -118,14 +123,43 @@ Swagger = {
       });
     });
 
-    swaggerTools.initializeMiddleware(this.definition, (middleware) => {
-      WebApp.connectHandlers.use(middleware.swaggerMetadata());
-      WebApp.connectHandlers.use(middleware.swaggerValidator());
-      WebApp.connectHandlers.use(middleware.swaggerRouter({
-        controllers,
-        useStubs: this.stubs
-      }));
-      WebApp.connectHandlers.use(middleware.swaggerUi());
+    if (inDevelopment()) {
+      WebApp.connectHandlers.use((req, res, next) => {
+        if (req.url === '/docs') {
+          res.setHeader('content-type', 'text/html');
+          let response = '<h2>All Swagger APIs</h2><ul>';
+          this.definitions.forEach((definition, identifier) => {
+            response += `<li>
+                          <a href="/${identifier}/docs">
+                            <h4>${definition.info.title}<h4>
+                          </a>
+                        </li>`;
+          });
+          res.write(response);
+          res.end();
+        }
+        else {
+          next();
+        }
+      });
+    }
+
+    this.definitions.forEach((definition, identifier) => {
+      swaggerTools.initializeMiddleware(definition, (middleware) => {
+        WebApp.connectHandlers.use(middleware.swaggerMetadata());
+        WebApp.connectHandlers.use(middleware.swaggerValidator());
+        WebApp.connectHandlers.use(middleware.swaggerRouter({
+          controllers,
+          useStubs: this.stubs
+        }));
+
+        if (inDevelopment()) {
+          WebApp.connectHandlers.use(middleware.swaggerUi({
+            swaggerUi: `/${identifier}/docs`,
+            apiDocs: `/${identifier}/api-docs`
+          }));
+        }
+      });
     });
   },
 

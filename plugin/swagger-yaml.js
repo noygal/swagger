@@ -7,10 +7,11 @@ Plugin.registerCompiler({
     processFilesForTarget(files) {
       files.forEach((file) => {
         let swaggerDoc = JSON.stringify(safeLoad(file.getContentsAsString()));
+        let apiIdentifier = file.getBasename().replace('.swagger-server.yaml', '');
 
         file.addJavaScript({
           data : `
-            Swagger.loadSwaggerDefinition(${swaggerDoc});
+            Swagger.loadSwaggerDefinition("${apiIdentifier}",${swaggerDoc});
           `,
           path: file.getPathInPackage() + '.js'
         });
