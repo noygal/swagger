@@ -125,7 +125,7 @@ Swagger = {
 
     if (inDevelopment()) {
       WebApp.connectHandlers.use((req, res, next) => {
-        if (req.url === '/docs') {
+        if (req.url === '/docs' || req.url === '/docs/') {
           res.setHeader('content-type', 'text/html');
           let response = '<h2>All Swagger APIs</h2><ul>';
           this.definitions.forEach((definition, identifier) => {
