@@ -123,7 +123,7 @@ Swagger = {
       });
     });
 
-    if (inDevelopment()) {
+    if (inDevelopment() || this._allowDocs) {
       WebApp.connectHandlers.use((req, res, next) => {
         if (req.url === '/docs' || req.url === '/docs/') {
           res.setHeader('content-type', 'text/html');
@@ -153,7 +153,7 @@ Swagger = {
           useStubs: this.stubs
         }));
 
-        if (inDevelopment()) {
+        if (inDevelopment() || this._allowDocs) {
           WebApp.connectHandlers.use(middleware.swaggerUi({
             swaggerUi: `/${identifier}/docs`,
             apiDocs: `/${identifier}/api-docs`
@@ -172,5 +172,9 @@ Swagger = {
 
   client(name) {
     return this.clients.get(name);
+  },
+
+  allowDocs() {
+    this._allowDocs = true;
   }
 };
