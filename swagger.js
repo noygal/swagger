@@ -134,7 +134,10 @@ Swagger = {
   },
 
   start (injector) {
-    injector = injector || { get: function() {} };
+    injector = injector || {
+        get: function () {
+        }
+      };
     let controllers = {};
 
     this.handlers.forEach(({controller, operationId, context, cb, transformers}) => {
@@ -219,10 +222,30 @@ Swagger = {
   },
 
   createClient(name, swaggerDoc) {
-    this.clients.set(name, new swaggerClient({
-      spec: swaggerDoc,
-      usePromise: true
-    }));
+    let promise = new Promise((resolve) => {
+      let api = new swaggerClient({
+        spec: swaggerDoc,
+        success: () => {
+          _.forEach(api.apisArray, (currentApi) => {
+            let controller = api[currentApi.name];
+
+            _.forEach(controller.apis, (operationMetadata, operationKey) => {
+              let operation = controller[operationKey];
+
+              controller[operationKey] = function(...args) {
+                return new Promise((resolve, reject) => {
+                  operation.apply(this, args.concat(resolve, reject));
+                });
+              }
+            })
+          });
+
+          resolve(api);
+        }
+      });
+    });
+
+    this.clients.set(name, promise);
   },
 
   client(name) {
