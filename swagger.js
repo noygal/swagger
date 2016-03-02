@@ -233,6 +233,10 @@ Swagger = {
               let operation = controller[operationKey];
 
               controller[operationKey] = function(...args) {
+                if (args.length === 0) {
+                  args = [{}];
+                }
+
                 return new Promise((resolve, reject) => {
                   operation.apply(this, args.concat(resolve, reject));
                 });
