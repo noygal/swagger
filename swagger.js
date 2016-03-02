@@ -22,6 +22,7 @@ function handleError(res, err, next) {
     res.end();
   }
   else {
+    console.log(err);
     next(err);
   }
 }
@@ -30,11 +31,18 @@ function inDevelopment() {
   return process.env.NODE_ENV === "development";
 }
 
+ISwaggerRequestTransform = class ISwaggerRequestTransform {
+  convertArguments(...args) {
+
+  }
+};
+
 Swagger = {
   debug: false,
   handlers: [],
   registeredControllers: new Map(),
   controllerInstances: new Map(),
+  transformers: new Map(),
   clients: new Map(),
   definitions: new Map(),
 
@@ -54,14 +62,46 @@ Swagger = {
   Controller (name) {
     return function (target) {
       target.controllerName = name;
+
       Swagger.registeredControllers.get(target).forEach((operation) => {
-        Swagger.registerHandler(name, operation.operationId, undefined, operation.cb);
+        let currentOperationTransformers = [];
+
+        if (Swagger.transformers.get(target)) {
+          Swagger.transformers.get(target).forEach((transformer) => {
+            if (transformer.targetOperation === operation.cb) {
+              currentOperationTransformers.push(transformer.implementation);
+            }
+          });
+        }
+
+        Swagger.registerHandler(target, operation.operationId, undefined, operation.cb, currentOperationTransformers);
       });
     }
   },
 
+  RequestTransform(transformer) {
+    return function (target, name) {
+      if (transformer.prototype instanceof ISwaggerRequestTransform) {
+        let transformers = Swagger.transformers.get(target.constructor);
+
+        if (!transformers) {
+          transformers = [];
+          Swagger.transformers.set(target.constructor, transformers);
+        }
+
+        transformers.push({
+          implementation: transformer,
+          targetOperation: target[name]
+        });
+      }
+      else {
+        throw 'RequestTransform class must inherit and implement ISwaggerRequestTransform!';
+      }
+    }
+  },
+
   Operation (operationId) {
-    return function(target, name) {
+    return function (target, name) {
       let controllerOperations = Swagger.registeredControllers.get(target.constructor);
       if (!controllerOperations) {
         controllerOperations = [];
@@ -76,15 +116,16 @@ Swagger = {
   },
 
   bind (constructor, instance) {
-    this.controllerInstances.set(constructor.controllerName, instance);
+    this.controllerInstances.set(constructor, instance);
   },
 
-  registerHandler (controller, operationId, context, cb) {
+  registerHandler (controller, operationId, context, cb, transformers) {
     this.handlers.push({
       controller,
       operationId,
       context,
-      cb
+      cb,
+      transformers: (transformers || []).reverse()
     });
   },
 
@@ -92,16 +133,30 @@ Swagger = {
     this.stubs = useStubs;
   },
 
-  start () {
+  start (injector) {
+    injector = injector || { get: function() {} };
     let controllers = {};
 
-    this.handlers.forEach(({controller, operationId, context, cb}) => {
+    this.handlers.forEach(({controller, operationId, context, cb, transformers}) => {
       // TODO: Separate to private function and explain logic with links
-      controllers[`${controller}_${operationId}`] = Meteor.bindEnvironment(function routeToHandler(req, res, next) {
+      controllers[`${controller.controllerName}_${operationId}`] = Meteor.bindEnvironment(function routeToHandler(req, res, next) {
         let args = _.pluck(req.swagger.params, 'value');
         context = context || Swagger.controllerInstances.get(controller);
 
         try {
+          if (transformers.length > 0) {
+            transformers.forEach((transformer) => {
+              let instance = injector.get(transformer) || new transformer();
+              let newArgs = instance.convertArguments.apply(instance, args) || [];
+
+              newArgs.forEach((argValue, index) => {
+                if (argValue !== undefined) {
+                  args[index] = argValue;
+                }
+              });
+            });
+          }
+
           let returnValue = cb.apply(context, args);
           if (isPromise(returnValue)) {
             returnValue.then((result) => {

@@ -11,8 +11,8 @@ Package.describe({
 });
 
 Npm.depends({
-  'swagger-tools' : '0.9.15',
-  'swagger-client': '2.1.11'
+  'swagger-tools' : '0.10.1',
+  'swagger-client': '2.1.13'
 });
 
 Package.registerBuildPlugin({
@@ -34,7 +34,7 @@ Package.onUse(function(api) {
     'isobuild:compiler-plugin@1.0.0',
     'webapp']);
   api.addFiles('swagger.js', 'server');
-  api.export('Swagger');
+  api.export(['ISwaggerRequestTransform', 'Swagger']);
 });
 
 Package.onTest(function(api) {
