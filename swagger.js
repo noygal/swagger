@@ -78,7 +78,7 @@ Swagger = {
     }
   },
 
-  Transform (transformer) {
+  Transform (...transformers) {
     return function (target, name, argIndex) {
       let operationTransformers = Swagger.registeredOperations.get(target.constructor.name + ':' + name);
       if (!operationTransformers) {
@@ -87,7 +87,7 @@ Swagger = {
       }
 
       operationTransformers.push({
-        transformer,
+        transformers,
         argIndex
       });
     }
@@ -229,8 +229,10 @@ function getArgsFromParams(transformers, params) {
   _.forEach(params, (param) => {
     let transformer = _.findWhere(transformers, { argIndex: index });
     if (transformer) {
-      let transformerInstance = Swagger.instances.get(transformer.transformer);
-      param.value = transformerInstance.transform.call(transformerInstance, param.value);
+      transformer.transformers.forEach((transformer) => {
+        let transformerInstance = Swagger.instances.get(transformer);
+        param.value = transformerInstance.transform.call(transformerInstance, param.value);
+      });
     }
 
     index++;
