@@ -119,10 +119,10 @@ Swagger = {
       controllers[`${controller.controllerName}_${operationId}`] = Meteor.bindEnvironment(function routeToHandler(req, res, next) {
         context = context || Swagger.instances.get(controller);
 
-        let args = getArgsFromParams(transformers, req.swagger.params);
-
         try {
+          let args = getArgsFromParams(transformers, req.swagger.params);
           let returnValue = cb.apply(context, args);
+
           if (isPromise(returnValue)) {
             returnValue.then((result) => {
                 writeJsonToBody(res, result);
@@ -194,7 +194,7 @@ Swagger = {
             _.forEach(controller.apis, (operationMetadata, operationKey) => {
               let operation = controller[operationKey];
 
-              controller[operationKey] = function(...args) {
+              controller[operationKey] = function (...args) {
                 if (args.length === 0) {
                   args = [{}];
                 }
@@ -227,7 +227,7 @@ function getArgsFromParams(transformers, params) {
   let index = 0;
 
   _.forEach(params, (param) => {
-    let transformer = _.findWhere(transformers, { argIndex: index });
+    let transformer = _.findWhere(transformers, {argIndex: index});
     if (transformer) {
       transformer.transformers.forEach((transformer) => {
         let transformerInstance = Swagger.instances.get(transformer);
