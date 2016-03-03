@@ -34,7 +34,9 @@ Swagger = {
   debug: false,
   handlers: [],
   registeredControllers: new Map(),
-  controllerInstances: new Map(),
+  registeredOperations: new Map(),
+  instances: new Map(),
+  argumentsTransforms: new Map(),
   clients: new Map(),
   definitions: new Map(),
 
@@ -55,13 +57,13 @@ Swagger = {
     return function (target) {
       target.controllerName = name;
       Swagger.registeredControllers.get(target).forEach((operation) => {
-        Swagger.registerHandler(name, operation.operationId, undefined, operation.cb);
+        Swagger.registerHandler(target, operation.operationId, undefined, operation.cb, operation.transformers);
       });
     }
   },
 
   Operation (operationId) {
-    return function(target, name) {
+    return function (target, name) {
       let controllerOperations = Swagger.registeredControllers.get(target.constructor);
       if (!controllerOperations) {
         controllerOperations = [];
@@ -70,21 +72,38 @@ Swagger = {
 
       controllerOperations.push({
         operationId,
-        cb: target[name]
+        cb: target[name],
+        transformers: Swagger.registeredOperations.get(target.constructor.name + ':' + name)
+      });
+    }
+  },
+
+  Transform (...transformers) {
+    return function (target, name, argIndex) {
+      let operationTransformers = Swagger.registeredOperations.get(target.constructor.name + ':' + name);
+      if (!operationTransformers) {
+        operationTransformers = [];
+        Swagger.registeredOperations.set(target.constructor.name + ':' + name, operationTransformers);
+      }
+
+      operationTransformers.push({
+        transformers,
+        argIndex
       });
     }
   },
 
   bind (constructor, instance) {
-    this.controllerInstances.set(constructor.controllerName, instance);
+    this.instances.set(constructor, instance);
   },
 
-  registerHandler (controller, operationId, context, cb) {
+  registerHandler (controller, operationId, context, cb, transformers) {
     this.handlers.push({
       controller,
       operationId,
       context,
-      cb
+      cb,
+      transformers: (transformers || []).reverse()
     });
   },
 
@@ -95,14 +114,15 @@ Swagger = {
   start () {
     let controllers = {};
 
-    this.handlers.forEach(({controller, operationId, context, cb}) => {
+    this.handlers.forEach(({controller, operationId, context, cb, transformers}) => {
       // TODO: Separate to private function and explain logic with links
-      controllers[`${controller}_${operationId}`] = Meteor.bindEnvironment(function routeToHandler(req, res, next) {
-        let args = _.pluck(req.swagger.params, 'value');
-        context = context || Swagger.controllerInstances.get(controller);
+      controllers[`${controller.controllerName}_${operationId}`] = Meteor.bindEnvironment(function routeToHandler(req, res, next) {
+        context = context || Swagger.instances.get(controller);
 
         try {
+          let args = getArgsFromParams(transformers, req.swagger.params);
           let returnValue = cb.apply(context, args);
+
           if (isPromise(returnValue)) {
             returnValue.then((result) => {
                 writeJsonToBody(res, result);
@@ -164,10 +184,34 @@ Swagger = {
   },
 
   createClient(name, swaggerDoc) {
-    this.clients.set(name, new swaggerClient({
-      spec: swaggerDoc,
-      usePromise: true
-    }));
+    let promise = new Promise((resolve) => {
+      let api = new swaggerClient({
+        spec: swaggerDoc,
+        success: () => {
+          _.forEach(api.apisArray, (currentApi) => {
+            let controller = api[currentApi.name];
+
+            _.forEach(controller.apis, (operationMetadata, operationKey) => {
+              let operation = controller[operationKey];
+
+              controller[operationKey] = function (...args) {
+                if (args.length === 0) {
+                  args = [{}];
+                }
+
+                return new Promise((resolve, reject) => {
+                  operation.apply(this, args.concat(resolve, reject));
+                });
+              }
+            })
+          });
+
+          resolve(api);
+        }
+      });
+    });
+
+    this.clients.set(name, promise);
   },
 
   client(name) {
@@ -178,3 +222,23 @@ Swagger = {
     this._allowDocs = true;
   }
 };
+
+function getArgsFromParams(transformers, params) {
+  let index = 0;
+
+  _.forEach(params, (param) => {
+    let transformer = _.findWhere(transformers, {argIndex: index});
+    if (transformer) {
+      transformer.transformers.forEach((transformer) => {
+        let transformerInstance = Swagger.instances.get(transformer);
+        param.value = transformerInstance.transform.call(transformerInstance, param.value);
+      });
+    }
+
+    index++;
+  });
+
+  return _.pluck(params, 'value');
+}
+
+
