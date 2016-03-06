@@ -1,6 +1,6 @@
 Package.describe({
   name: 'guild:swagger',
-  version: '0.0.12',
+  version: '0.0.13',
   // Brief, one-line summary of the package.
   summary: 'Rest API based on swagger',
   // URL to the Git repository containing the source code for this package.
@@ -40,6 +40,4 @@ Package.onUse(function(api) {
 Package.onTest(function(api) {
   api.use('ecmascript');
   api.use('tinytest');
-  api.use('guild:swagger');
-  api.addFiles('swagger-tests.js');
 });
