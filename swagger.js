@@ -120,26 +120,17 @@ Swagger = {
         context = context || Swagger.instances.get(controller);
 
         try {
-          getArgsFromParams(transformers, req.swagger.params).then((args) => {
-            let returnValue = cb.apply(context, args);
-
-            if (isPromise(returnValue)) {
-              returnValue.then((result) => {
-                  writeJsonToBody(res, result);
-                  res.end();
-                })
-                .catch((err) => {
-                  handleError(res, err, next);
-                })
-            }
-            else {
-              writeJsonToBody(res, returnValue);
+          getArgsFromParams(transformers, req.swagger.params)
+            .then((args) => {
+              return cb.apply(context, args);
+            })
+            .then((result) => {
+              writeJsonToBody(res, result);
               res.end();
-            }
-          })
-          .catch((error) => {
-            handleError(res, error, next);
-          });
+            })
+            .catch((error) => {
+              handleError(res, error, next);
+            });
         }
         catch (error) {
           handleError(res, error, next);
@@ -235,28 +226,20 @@ function getArgsFromParams(transformers, params) {
     let transformersList = _.findWhere(transformers, {argIndex: index});
 
     if (transformersList) {
-      let handleTransformer = function (transformersContainer, tIndex) {
+      function handleTransformer(transformersContainer, tIndex) {
         let transformers = transformersContainer.transformers;
         let transformer = (transformers || [])[tIndex];
 
         if (transformer) {
           let transformerInstance = Swagger.instances.get(transformer);
           let returnValue = transformerInstance.transform.call(transformerInstance, param.value);
-          let currentPromise;
 
-          if (returnValue instanceof Promise) {
-            currentPromise = returnValue;
-          }
-          else {
-            currentPromise = Promise.resolve(returnValue);
-          }
-
-          return currentPromise
+          return Promise.resolve(returnValue)
             .then((result) => {
               param.value = result;
 
               if (transformers[tIndex + 1]) {
-                return handleTransformer(transformers[0], tIndex + 1);
+                return handleTransformer(transformersContainer, tIndex + 1);
               }
               else {
                 return param.value;
@@ -266,12 +249,9 @@ function getArgsFromParams(transformers, params) {
         else {
           return Promise.resolve(param.value);
         }
-      };
+      }
 
-      let prom = handleTransformer(transformersList, 0);
-
-      if (prom)
-        promises.push(prom);
+      promises.push(handleTransformer(transformersList, 0));
     }
     else {
       promises.push(Promise.resolve(param.value));
