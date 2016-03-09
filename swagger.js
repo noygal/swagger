@@ -120,22 +120,17 @@ Swagger = {
         context = context || Swagger.instances.get(controller);
 
         try {
-          let args = getArgsFromParams(transformers, req.swagger.params);
-          let returnValue = cb.apply(context, args);
-
-          if (isPromise(returnValue)) {
-            returnValue.then((result) => {
-                writeJsonToBody(res, result);
-                res.end();
-              })
-              .catch((err) => {
-                handleError(res, err, next);
-              })
-          }
-          else {
-            writeJsonToBody(res, returnValue);
-            res.end();
-          }
+          getArgsFromParams(transformers, req.swagger.params)
+            .then((args) => {
+              return cb.apply(context, args);
+            })
+            .then((result) => {
+              writeJsonToBody(res, result);
+              res.end();
+            })
+            .catch((error) => {
+              handleError(res, error, next);
+            });
         }
         catch (error) {
           handleError(res, error, next);
@@ -224,21 +219,48 @@ Swagger = {
 };
 
 function getArgsFromParams(transformers, params) {
+  let promises = [];
   let index = 0;
 
   _.forEach(params, (param) => {
-    let transformer = _.findWhere(transformers, {argIndex: index});
-    if (transformer) {
-      transformer.transformers.forEach((transformer) => {
-        let transformerInstance = Swagger.instances.get(transformer);
-        param.value = transformerInstance.transform.call(transformerInstance, param.value);
-      });
+    let transformersList = _.findWhere(transformers, {argIndex: index});
+
+    if (transformersList) {
+      function handleTransformer(transformersContainer, tIndex) {
+        let transformers = transformersContainer.transformers;
+        let transformer = (transformers || [])[tIndex];
+
+        if (transformer) {
+          let transformerInstance = Swagger.instances.get(transformer);
+          let returnValue = transformerInstance.transform.call(transformerInstance, param.value);
+
+          return Promise.resolve(returnValue)
+            .then((result) => {
+              param.value = result;
+
+              if (transformers[tIndex + 1]) {
+                return handleTransformer(transformersContainer, tIndex + 1);
+              }
+              else {
+                return param.value;
+              }
+            });
+        }
+        else {
+          return Promise.resolve(param.value);
+        }
+      }
+
+      promises.push(handleTransformer(transformersList, 0));
+    }
+    else {
+      promises.push(Promise.resolve(param.value));
     }
 
     index++;
   });
 
-  return _.pluck(params, 'value');
+  return Promise.all(promises);
 }
 
 
