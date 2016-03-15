@@ -43,6 +43,14 @@ Swagger = {
   Error: class Error {
     constructor(httpCode, error) {
       this.httpCode = httpCode;
+
+      if (typeof error === 'string') {
+        error = {
+          code: httpCode,
+          reason: error
+        }
+      }
+
       this.error = error;
     }
   },
