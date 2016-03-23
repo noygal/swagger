@@ -35,6 +35,7 @@ Swagger = {
   handlers: [],
   registeredControllers: new Map(),
   registeredOperations: new Map(),
+  registeredParamters: new Map(),
   instances: new Map(),
   argumentsTransforms: new Map(),
   clients: new Map(),
@@ -65,7 +66,7 @@ Swagger = {
     return function (target) {
       target.controllerName = name;
       Swagger.registeredControllers.get(target).forEach((operation) => {
-        Swagger.registerHandler(target, operation.operationId, undefined, operation.cb, operation.transformers);
+        Swagger.registerHandler(target, operation.operationId, undefined, operation.cb, operation.transformers, operation.namedParameters);
       });
     }
   },
@@ -81,7 +82,24 @@ Swagger = {
       controllerOperations.push({
         operationId,
         cb: target[name],
+        namedParameters: Swagger.registeredParamters.get(target.constructor.name + ':' + name),
         transformers: Swagger.registeredOperations.get(target.constructor.name + ':' + name)
+      });
+    }
+  },
+
+  Parameter (parameterName) {
+    return function(target, name, argIndex) {
+      let parameters = Swagger.registeredParamters.get(target.constructor.name + ':' + name);
+
+      if (!parameters) {
+        parameters = [];
+        Swagger.registeredParamters.set(target.constructor.name + ':' + name, parameters);
+      }
+
+      parameters.push({
+        parameterName,
+        argIndex
       });
     }
   },
@@ -105,12 +123,13 @@ Swagger = {
     this.instances.set(constructor, instance);
   },
 
-  registerHandler (controller, operationId, context, cb, transformers) {
+  registerHandler (controller, operationId, context, cb, transformers, namedParameters) {
     this.handlers.push({
       controller,
       operationId,
       context,
       cb,
+      namedParameters: namedParameters || [],
       transformers: (transformers || []).reverse()
     });
   },
@@ -122,7 +141,7 @@ Swagger = {
   start () {
     let controllers = {};
 
-    this.handlers.forEach(({controller, operationId, context, cb, transformers}) => {
+    this.handlers.forEach(({controller, operationId, context, cb, transformers, namedParameters}) => {
       // TODO: Separate to private function and explain logic with links
       controllers[`${controller.controllerName}_${operationId}`] = Meteor.bindEnvironment(function routeToHandler(req, res, next) {
         context = context || Swagger.instances.get(controller);
@@ -130,6 +149,11 @@ Swagger = {
         try {
           getArgsFromParams(transformers, req.swagger.params)
             .then((args) => {
+
+              namedParameters.forEach((parameter) => {
+                args[parameter.argIndex] = (req.swagger.params[parameter.parameterName] || {}).originalValue;
+              });
+
               return cb.apply(context, args);
             })
             .then((result) => {
