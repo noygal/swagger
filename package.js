@@ -12,7 +12,8 @@ Package.describe({
 
 Npm.depends({
   'swagger-tools' : '0.10.1',
-  'swagger-client': '2.1.13'
+  'swagger-client': '2.1.13',
+  'js-yaml': '3.5.5'
 });
 
 Package.registerBuildPlugin({
