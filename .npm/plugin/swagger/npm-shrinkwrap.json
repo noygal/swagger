@@ -2,25 +2,17 @@
   "dependencies": {
     "js-yaml": {
       "version": "3.5.3",
-      "resolved": "https://registry.npmjs.org/js-yaml/-/js-yaml-3.5.3.tgz",
-      "from": "js-yaml@3.5.3",
       "dependencies": {
         "argparse": {
           "version": "1.0.6",
-          "resolved": "https://registry.npmjs.org/argparse/-/argparse-1.0.6.tgz",
-          "from": "argparse@1.0.6",
           "dependencies": {
             "sprintf-js": {
-              "version": "1.0.3",
-              "resolved": "https://registry.npmjs.org/sprintf-js/-/sprintf-js-1.0.3.tgz",
-              "from": "sprintf-js@1.0.3"
+              "version": "1.0.3"
             }
           }
         },
         "esprima": {
-          "version": "2.7.2",
-          "resolved": "https://registry.npmjs.org/esprima/-/esprima-2.7.2.tgz",
-          "from": "esprima@2.7.2"
+          "version": "2.7.2"
         }
       }
     }
