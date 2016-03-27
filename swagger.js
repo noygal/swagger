@@ -255,6 +255,7 @@ function getArgsFromParams(transformers, params) {
   let index = 0;
 
   _.forEach(params, (param) => {
+    console.log(param);
     let transformersList = _.findWhere(transformers, {argIndex: index});
 
     if (transformersList) {
@@ -271,7 +272,20 @@ function getArgsFromParams(transformers, params) {
               param.value = result;
 
               if (transformers[tIndex + 1]) {
-                return handleTransformer(transformersContainer, tIndex + 1);
+                if (param.schema && param.schema.required) {
+                  return handleTransformer(transformersContainer, tIndex + 1);
+                }
+                else {
+                  return new Promise((resolve) => {
+                    handleTransformer(transformersContainer, tIndex + 1)
+                      .then((response) => {
+                        resolve(response);
+                      })
+                      .catch(() => {
+                        resolve();
+                      });
+                  });
+                }
               }
               else {
                 return param.value;
