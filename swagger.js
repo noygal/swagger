@@ -89,7 +89,7 @@ Swagger = {
   },
 
   Parameter (parameterName) {
-    return function(target, name, argIndex) {
+    return function (target, name, argIndex) {
       let parameters = Swagger.registeredParamters.get(target.constructor.name + ':' + name);
 
       if (!parameters) {
@@ -136,6 +136,10 @@ Swagger = {
 
   useStubs (useStubs) {
     this.stubs = useStubs;
+  },
+
+  debugMode (debugMode) {
+    this.debug = debugMode;
   },
 
   start () {
@@ -224,6 +228,10 @@ Swagger = {
               controller[operationKey] = function (...args) {
                 if (args.length === 0) {
                   args = [{}];
+                }
+
+                if (Swagger.debug) {
+                  console.log("[Swagger-Client][DEBUG] About to run operation " + operationKey + ' with arguments: ', args);
                 }
 
                 return new Promise((resolve, reject) => {
