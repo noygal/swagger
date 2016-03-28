@@ -263,7 +263,6 @@ function getArgsFromParams(transformers, params) {
   let index = 0;
 
   _.forEach(params, (param) => {
-    console.log(param);
     let transformersList = _.findWhere(transformers, {argIndex: index});
 
     if (transformersList) {
