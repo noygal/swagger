@@ -32,6 +32,7 @@ function inDevelopment() {
 
 Swagger = {
   debug: false,
+  raw: false,
   handlers: [],
   registeredControllers: new Map(),
   registeredOperations: new Map(),
@@ -141,6 +142,10 @@ Swagger = {
   debugMode (debugMode) {
     this.debug = debugMode;
   },
+  
+  printRaw(isRaw) {
+    this.raw = isRaw;
+  },
 
   start () {
     let controllers = {};
@@ -149,6 +154,10 @@ Swagger = {
       // TODO: Separate to private function and explain logic with links
       controllers[`${controller.controllerName}_${operationId}`] = Meteor.bindEnvironment(function routeToHandler(req, res, next) {
         context = context || Swagger.instances.get(controller);
+
+        if (Swagger.raw) {
+          console.log("[Swagger-Client][RAW] Got " + operationId + ' with raw params: ', JSON.stringify(req.swagger.params));
+        }
 
         try {
           getArgsFromParams(transformers, req.swagger.params)
@@ -231,7 +240,7 @@ Swagger = {
                 }
 
                 if (Swagger.debug) {
-                  console.log("[Swagger-Client][DEBUG] About to run operation " + operationKey + ' with arguments: ', args);
+                  console.log("[Swagger-Client][DEBUG] About to run operation " + operationKey + ' with transformed arguments: ', args);
                 }
 
                 return new Promise((resolve, reject) => {
@@ -266,33 +275,20 @@ function getArgsFromParams(transformers, params) {
     let transformersList = _.findWhere(transformers, {argIndex: index});
 
     if (transformersList) {
-      function handleTransformer(transformersContainer, tIndex) {
+      function handleTransformer(transformersContainer, tIndex, isRequired) {
         let transformers = transformersContainer.transformers;
         let transformer = (transformers || [])[tIndex];
 
         if (transformer) {
           let transformerInstance = Swagger.instances.get(transformer);
-          let returnValue = transformerInstance.transform.call(transformerInstance, param.value);
+          let returnValue = transformerInstance.transform.call(transformerInstance, param.value, param.schema.required);
 
           return Promise.resolve(returnValue)
             .then((result) => {
               param.value = result;
 
               if (transformers[tIndex + 1]) {
-                if (param.schema && param.schema.required) {
                   return handleTransformer(transformersContainer, tIndex + 1);
-                }
-                else {
-                  return new Promise((resolve) => {
-                    handleTransformer(transformersContainer, tIndex + 1)
-                      .then((response) => {
-                        resolve(response);
-                      })
-                      .catch(() => {
-                        resolve();
-                      });
-                  });
-                }
               }
               else {
                 return param.value;
