@@ -41,6 +41,7 @@ Swagger = {
   argumentsTransforms: new Map(),
   clients: new Map(),
   definitions: new Map(),
+  logger: console,
 
   Error: class Error {
     constructor(httpCode, error) {
@@ -55,6 +56,10 @@ Swagger = {
 
       this.error = error;
     }
+  },
+
+  setLogger(logger) {
+    this.logger = logger;
   },
 
   loadSwaggerDefinition (identifier, definition) {
@@ -156,7 +161,7 @@ Swagger = {
         context = context || Swagger.instances.get(controller);
 
         if (Swagger.raw) {
-          console.log("[Swagger-Client][RAW] Got " + operationId + ' with raw params: ', JSON.stringify(req.swagger.params));
+          Swagger.logger.log('verbose', "Got " + operationId + ' with raw params: ', req.swagger.params);
         }
 
         try {
@@ -240,7 +245,7 @@ Swagger = {
                 }
 
                 if (Swagger.debug) {
-                  console.log("[Swagger-Client][DEBUG] About to run operation " + operationKey + ' with transformed arguments: ', args);
+                  Swagger.logger.log('debug', "About to run operation " + operationKey + ' with transformed arguments: ', args);
                 }
 
                 return new Promise((resolve, reject) => {
