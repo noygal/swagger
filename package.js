@@ -23,7 +23,8 @@ Package.registerBuildPlugin({
     'plugin/swagger-yaml.js'
   ],
   npmDependencies: {
-    'js-yaml': '3.5.3'
+    'js-yaml': '3.5.3',
+    'swagger-js-codegen': '1.3.3'
   }
 });
 
