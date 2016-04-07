@@ -52,7 +52,6 @@ class SwaggerCompiler {
         let cleanFilename = file.getBasename().replace('.swagger.yaml', '');
 
         if (config.api[cleanFilename]) {
-          localApis[cleanFilename] = true;
           let apiType = config.api[cleanFilename];
 
           if (apiType === "client") {
