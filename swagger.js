@@ -42,6 +42,7 @@ Swagger = {
   clients: new Map(),
   definitions: new Map(),
   logger: console,
+  errorHandler: undefined,
 
   Error: class Error {
     constructor(httpCode, error) {
@@ -56,6 +57,10 @@ Swagger = {
 
       this.error = error;
     }
+  },
+
+  setErrorHandler(errHandler) {
+    this.errorHandler = errHandler;
   },
 
   setLogger(logger) {
@@ -147,7 +152,7 @@ Swagger = {
   debugMode (debugMode) {
     this.debug = debugMode;
   },
-  
+
   printRaw(isRaw) {
     this.raw = isRaw;
   },
@@ -217,6 +222,12 @@ Swagger = {
           controllers,
           useStubs: this.stubs
         }));
+
+        if (Swagger.errorHandler) {
+          WebApp.connectHandlers.use((err, req, res, next) => {
+            return Swagger.errorHandler(err, req, res, next);
+          });
+        }
 
         if (inDevelopment() || this._allowDocs) {
           WebApp.connectHandlers.use(middleware.swaggerUi({
@@ -293,7 +304,7 @@ function getArgsFromParams(transformers, params) {
               param.value = result;
 
               if (transformers[tIndex + 1]) {
-                  return handleTransformer(transformersContainer, tIndex + 1);
+                return handleTransformer(transformersContainer, tIndex + 1);
               }
               else {
                 return param.value;
