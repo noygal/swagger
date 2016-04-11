@@ -33,6 +33,7 @@ function inDevelopment() {
 Swagger = {
   debug: false,
   raw: false,
+  cors: false,
   handlers: [],
   registeredControllers: new Map(),
   registeredOperations: new Map(),
@@ -67,9 +68,13 @@ Swagger = {
     this.logger = logger;
   },
 
+  allowCors(origin) {
+    this.cors = origin;
+  },
+
   loadSwaggerDefinition (identifier, definition) {
     let parsedUrl = url.parse(Meteor.absoluteUrl());
-    definition.host = `${parsedUrl.host}`;
+    definition.host = `0.0.0.0:8000`;
     this.definitions.set(identifier, definition);
   },
 
@@ -81,6 +86,7 @@ Swagger = {
       });
     }
   },
+
 
   Operation (operationId) {
     return function (target, name) {
@@ -216,6 +222,14 @@ Swagger = {
 
     this.definitions.forEach((definition, identifier) => {
       swaggerTools.initializeMiddleware(definition, (middleware) => {
+        if (Swagger.cors) {
+          WebApp.connectHandlers.use((err, req, res, next) => {
+            res.setHeader('Access-Control-Allow-Origin', Swagger.cors);
+
+            next();
+          });
+        }
+
         WebApp.connectHandlers.use(middleware.swaggerMetadata());
         WebApp.connectHandlers.use(middleware.swaggerValidator());
         WebApp.connectHandlers.use(middleware.swaggerRouter({

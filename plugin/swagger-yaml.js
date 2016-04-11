@@ -1,13 +1,13 @@
 let safeLoad = Npm.require('js-yaml').safeLoad;
-let CodeGen = Npm.require('swagger-js-codegen').CodeGen;
 
 class SwaggerCompiler {
   constructor() {
     this.gitRepo = null;
+    this.config = {};
   }
 
   locateAndProcessConfigFile(files) {
-    let configFile;
+    let configFile = '';
 
     files.forEach((file) => {
       if (file.getBasename() === "swagger-config.json") {
@@ -15,7 +15,9 @@ class SwaggerCompiler {
       }
     });
 
-    return configFile;
+    this.config = JSON.parse(configFile);
+
+    return this.config;
   }
 
   handleClient(file, apiIdentifier) {
@@ -29,6 +31,10 @@ class SwaggerCompiler {
     apiIdentifier = apiIdentifier || file.getBasename().replace('.swagger-server.yaml', '');
     let swaggerDoc = JSON.stringify(safeLoad(file.getContentsAsString()));
 
+    if (this.config.generateTypings) {
+
+    }
+
     return `Swagger.loadSwaggerDefinition("${apiIdentifier}",${swaggerDoc})`;
   }
 
@@ -37,7 +43,7 @@ class SwaggerCompiler {
   }
 
   processFilesForTarget(files) {
-    let config = JSON.parse(this.locateAndProcessConfigFile(files));
+    let config = this.locateAndProcessConfigFile(files);
 
     files.forEach((file) => {
       let content;
@@ -59,7 +65,6 @@ class SwaggerCompiler {
           }
           else if (apiType === "server") {
             content = this.handleServer(file, cleanFilename);
-            this.generateInterfaces(file, cleanFilename);
           }
         }
       }
