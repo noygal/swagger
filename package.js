@@ -13,7 +13,8 @@ Package.describe({
 Npm.depends({
   'swagger-tools' : '0.10.1',
   'swagger-client': 'https://github.com/dotansimha/swagger-js/archive/087753c582727f712147118776083972f7c22e73.tar.gz',
-  'js-yaml': '3.5.5'
+  'js-yaml': '3.5.5',
+  'swagger-to-typescript': '1.0.16'
 });
 
 Package.registerBuildPlugin({
@@ -23,7 +24,9 @@ Package.registerBuildPlugin({
     'plugin/swagger-yaml.js'
   ],
   npmDependencies: {
-    'js-yaml': '3.5.3'
+    'js-yaml': '3.5.3',
+    'simple-git': '1.32.0',
+    'swagger-to-typescript': '1.0.16'
   }
 });
 
