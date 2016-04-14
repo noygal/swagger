@@ -26,8 +26,8 @@
     },
     "swagger-client": {
       "version": "2.1.13",
-      "resolved": "https://github.com/dotansimha/swagger-js/archive/90838b613b940f6700a13d8216e4203c534cf24f.tar.gz",
-      "from": "https://github.com/dotansimha/swagger-js/archive/90838b613b940f6700a13d8216e4203c534cf24f.tar.gz",
+      "resolved": "https://github.com/dotansimha/swagger-js/archive/b97f2cf7e94efe3a84a574824fbacc00205ae145.tar.gz",
+      "from": "https://github.com/dotansimha/swagger-js/archive/b97f2cf7e94efe3a84a574824fbacc00205ae145.tar.gz",
       "dependencies": {
         "btoa": {
           "version": "1.1.2",
@@ -203,7 +203,7 @@
                 "extend": {
                   "version": "3.0.0",
                   "resolved": "https://registry.npmjs.org/extend/-/extend-3.0.0.tgz",
-                  "from": "extend@>=3.0.0 <4.0.0"
+                  "from": "extend@3.0.0"
                 },
                 "http-proxy-agent": {
                   "version": "1.0.0",
@@ -368,8 +368,8 @@
                               "from": "string_decoder@>=0.10.0 <0.11.0"
                             },
                             "unreachable-branch-transform": {
-                              "version": "0.5.0",
-                              "resolved": "https://registry.npmjs.org/unreachable-branch-transform/-/unreachable-branch-transform-0.5.0.tgz",
+                              "version": "0.5.1",
+                              "resolved": "https://registry.npmjs.org/unreachable-branch-transform/-/unreachable-branch-transform-0.5.1.tgz",
                               "from": "unreachable-branch-transform@>=0.5.0 <0.6.0",
                               "dependencies": {
                                 "esmangle-evaluator": {
@@ -378,19 +378,19 @@
                                   "from": "esmangle-evaluator@>=1.0.0 <2.0.0"
                                 },
                                 "recast": {
-                                  "version": "0.10.43",
-                                  "resolved": "https://registry.npmjs.org/recast/-/recast-0.10.43.tgz",
-                                  "from": "recast@>=0.10.1 <0.11.0",
+                                  "version": "0.11.4",
+                                  "resolved": "https://registry.npmjs.org/recast/-/recast-0.11.4.tgz",
+                                  "from": "recast@>=0.11.4 <0.12.0",
                                   "dependencies": {
                                     "ast-types": {
-                                      "version": "0.8.15",
-                                      "resolved": "https://registry.npmjs.org/ast-types/-/ast-types-0.8.15.tgz",
-                                      "from": "ast-types@0.8.15"
+                                      "version": "0.8.16",
+                                      "resolved": "https://registry.npmjs.org/ast-types/-/ast-types-0.8.16.tgz",
+                                      "from": "ast-types@0.8.16"
                                     },
-                                    "esprima-fb": {
-                                      "version": "15001.1001.0-dev-harmony-fb",
-                                      "resolved": "https://registry.npmjs.org/esprima-fb/-/esprima-fb-15001.1001.0-dev-harmony-fb.tgz",
-                                      "from": "esprima-fb@>=15001.1001.0-dev-harmony-fb <15001.1002.0"
+                                    "esprima": {
+                                      "version": "2.7.2",
+                                      "resolved": "https://registry.npmjs.org/esprima/-/esprima-2.7.2.tgz",
+                                      "from": "esprima@>=2.7.1 <2.8.0"
                                     },
                                     "private": {
                                       "version": "0.1.6",
@@ -691,7 +691,7 @@
                                             "align-text": {
                                               "version": "0.1.4",
                                               "resolved": "https://registry.npmjs.org/align-text/-/align-text-0.1.4.tgz",
-                                              "from": "align-text@>=0.1.3 <0.2.0",
+                                              "from": "align-text@>=0.1.1 <0.2.0",
                                               "dependencies": {
                                                 "kind-of": {
                                                   "version": "3.0.2",
@@ -732,7 +732,7 @@
                                             "align-text": {
                                               "version": "0.1.4",
                                               "resolved": "https://registry.npmjs.org/align-text/-/align-text-0.1.4.tgz",
-                                              "from": "align-text@>=0.1.3 <0.2.0",
+                                              "from": "align-text@>=0.1.1 <0.2.0",
                                               "dependencies": {
                                                 "kind-of": {
                                                   "version": "3.0.2",
