@@ -74,7 +74,7 @@ Swagger = {
 
   loadSwaggerDefinition (identifier, definition) {
     let parsedUrl = url.parse(Meteor.absoluteUrl());
-    definition.host = `0.0.0.0:8000`;
+    definition.host = `${parsedUrl.host}`;
     this.definitions.set(identifier, definition);
   },
 
