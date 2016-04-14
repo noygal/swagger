@@ -1,6 +1,6 @@
 Package.describe({
   name: 'guild:swagger',
-  version: '0.0.30',
+  version: '0.0.30_1',
   // Brief, one-line summary of the package.
   summary: 'Rest API based on swagger',
   // URL to the Git repository containing the source code for this package.
@@ -23,8 +23,7 @@ Package.registerBuildPlugin({
     'plugin/swagger-yaml.js'
   ],
   npmDependencies: {
-    'js-yaml': '3.5.3',
-    'exec-sync': '0.1.6'
+    'js-yaml': '3.5.3'
   }
 });
 
