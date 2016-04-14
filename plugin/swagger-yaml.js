@@ -1,4 +1,13 @@
+let Future = Npm.require('fibers/future');
 let safeLoad = Npm.require('js-yaml').safeLoad;
+let swaggerToTypeScript = Npm.require('swagger-to-typescript');
+let simpleGit = require('simple-git')();
+let fs = require('fs');
+
+const CLIENT_SWAGGER_SUFFIX = ".swagger-client.yaml";
+const SERVER_SWAGGER_SUFFIX = ".swagger-server.yaml";
+const COMMON_SWAGGER_SUFFIX = ".swagger.yaml";
+const DEFINITIONS_PATH = "./swagger-definitions";
 
 class SwaggerCompiler {
   constructor() {
@@ -20,20 +29,38 @@ class SwaggerCompiler {
     return this.config;
   }
 
-  handleClient(file, apiIdentifier) {
-    apiIdentifier = apiIdentifier || file.getBasename().replace('.swagger-client.yaml', '');
+  cloneRemoteDefinitionsRepository() {
+    const repository = this.config.repository;
+    const commitId = this.config.commitId || "";
+    if (!repository) {
+      return
+    }
+    this._deleteFolderRecursive(DEFINITIONS_PATH);
+    let fut = new Future();
+    simpleGit.clone(repository, './swagger-definitions').then(() => {
+      this._deleteFolderRecursive(`${DEFINITIONS_PATH}/.git`);
+      fut.return()
+    }, () => {
+      console.error(`[Swagger YAML] Fatal Error: cannot load swagger definitions from ${repository}`);
+      fut.return()
+    })
+    return fut.wait()
+  }
+
+  handleClient(file) {
+    let apiIdentifier = this._apiIdentifierName(file);
     let swaggerDoc = JSON.stringify(safeLoad(file.getContentsAsString()));
 
+    console.log(`[Swagger Yaml] create client for ${apiIdentifier}`)
+    
     return `Swagger.createClient('${apiIdentifier}', ${swaggerDoc});`;
   }
 
-  handleServer(file, apiIdentifier) {
-    apiIdentifier = apiIdentifier || file.getBasename().replace('.swagger-server.yaml', '');
+  handleServer(file) {
+    let apiIdentifier = this._apiIdentifierName(file);
     let swaggerDoc = JSON.stringify(safeLoad(file.getContentsAsString()));
 
-    if (this.config.generateTypings) {
-
-    }
+    console.log(`[Swagger Yaml] load server defintion for ${apiIdentifier}`)
 
     return `Swagger.loadSwaggerDefinition("${apiIdentifier}",${swaggerDoc})`;
   }
@@ -44,27 +71,28 @@ class SwaggerCompiler {
 
   processFilesForTarget(files) {
     let config = this.locateAndProcessConfigFile(files);
-
+    this.cloneRemoteDefinitionsRepository()
+    
     files.forEach((file) => {
       let content;
 
-      if (file.getBasename().indexOf('swagger-server.yaml') > -1) {
+      if (file.getBasename().indexOf(SERVER_SWAGGER_SUFFIX) > -1) {
         content = this.handleServer(file);
       }
-      else if (file.getBasename().indexOf('swagger-client.yaml') > -1) {
+      else if (file.getBasename().indexOf(CLIENT_SWAGGER_SUFFIX) > -1) {
         content = this.handleClient(file);
       }
-      else if (file.getBasename().indexOf('swagger.yaml') > -1) {
-        let cleanFilename = file.getBasename().replace('.swagger.yaml', '');
+      else if (file.getBasename().indexOf(COMMON_SWAGGER_SUFFIX) > -1) {
+        let cleanFilename = this._apiIdentifierName(file);
 
         if (config.api[cleanFilename]) {
           let apiType = config.api[cleanFilename];
 
           if (apiType === "client") {
-            content = this.handleClient(file, cleanFilename);
+            content = this.handleClient(file);
           }
           else if (apiType === "server") {
-            content = this.handleServer(file, cleanFilename);
+            content = this.handleServer(file);
           }
         }
       }
@@ -76,6 +104,27 @@ class SwaggerCompiler {
         });
       }
     });
+  }
+  _apiIdentifierName(file) {
+    return file.getBasename().replace(SERVER_SWAGGER_SUFFIX, '').replace(CLIENT_SWAGGER_SUFFIX, '').replace(COMMON_SWAGGER_SUFFIX, '');
+  }
+  _deleteFolderRecursive(path) {
+    if (fs.existsSync(path)) {
+      fs.readdirSync(path).forEach((file, index) => {
+        var curPath = path + "/" + file;
+        if (fs.lstatSync(curPath).isDirectory()) {
+          this._deleteFolderRecursive(curPath);
+        } else {
+          fs.unlinkSync(curPath);
+        }
+      });
+      fs.rmdirSync(path);
+    }
+  }
+  _camelize(str) {
+    return str.replace(/(?:^|[-_])(\w)/g, function (_, c) {
+      return c ? c.toUpperCase() : '';
+    })
   }
 }
 
