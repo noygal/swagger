@@ -9,6 +9,8 @@ const SERVER_SWAGGER_SUFFIX = ".swagger-server.yaml";
 const COMMON_SWAGGER_SUFFIX = ".swagger.yaml";
 const DEFINITIONS_PATH = "./swagger-definitions";
 
+let alreadyRun = false;
+
 class SwaggerCompiler {
   constructor() {
     this.gitRepo = null;
@@ -47,12 +49,21 @@ class SwaggerCompiler {
     return fut.wait()
   }
 
+  generateTypings(file) {
+    let fut = new Future();
+    let definitionName = this._camelize(this._apiIdentifierName(file));
+    console.log(`[Swagger Yaml] generate typings for ${definitionName}`)
+    swaggerToTypeScript(file.getPathInPackage(), './typings', definitionName, null, () => {
+      fut.return()
+    });
+    return fut.wait()
+  }
+  
   handleClient(file) {
     let apiIdentifier = this._apiIdentifierName(file);
     let swaggerDoc = JSON.stringify(safeLoad(file.getContentsAsString()));
 
     console.log(`[Swagger Yaml] create client for ${apiIdentifier}`)
-    
     return `Swagger.createClient('${apiIdentifier}', ${swaggerDoc});`;
   }
 
@@ -71,7 +82,8 @@ class SwaggerCompiler {
 
   processFilesForTarget(files) {
     let config = this.locateAndProcessConfigFile(files);
-    this.cloneRemoteDefinitionsRepository()
+
+    if(!alreadyRun) this.cloneRemoteDefinitionsRepository();
     
     files.forEach((file) => {
       let content;
@@ -100,11 +112,32 @@ class SwaggerCompiler {
       if (content) {
         file.addJavaScript({
           data: content,
-          path: file.getPathInPackage() + '.js'
+          path: 'server/' + file.getPathInPackage() + '.js'
         });
       }
     });
+
+    if (!alreadyRun && config.generateTypings) {
+      files.forEach((file) => {
+        if (file.getBasename().indexOf(SERVER_SWAGGER_SUFFIX) > -1) {
+          this.generateTypings(file)
+        }
+        else if (file.getBasename().indexOf(CLIENT_SWAGGER_SUFFIX) > -1) {
+          this.generateTypings(file)
+        }
+        else if (file.getBasename().indexOf(COMMON_SWAGGER_SUFFIX) > -1) {
+          let cleanFilename = this._apiIdentifierName(file);
+
+          if (config.api[cleanFilename]) {
+            this.generateTypings(file)
+          }
+        }
+      })
+    }
+
+    alreadyRun = true
   }
+
   _apiIdentifierName(file) {
     return file.getBasename().replace(SERVER_SWAGGER_SUFFIX, '').replace(CLIENT_SWAGGER_SUFFIX, '').replace(COMMON_SWAGGER_SUFFIX, '');
   }
