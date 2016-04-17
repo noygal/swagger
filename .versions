@@ -18,12 +18,12 @@ ecmascript@0.4.2
 ecmascript-runtime@0.2.9
 ejson@1.0.10
 geojson-utils@1.0.7
-guild:swagger@0.0.40
+guild:swagger@0.0.41
 html-tools@1.0.8
 htmljs@1.0.8
 id-map@1.0.6
 jquery@1.11.7
-local-test:guild:swagger@0.0.40
+local-test:guild:swagger@0.0.41
 logging@1.0.11
 meteor@1.1.13
 minimongo@1.0.13
