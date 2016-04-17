@@ -1,0 +1,38 @@
+{
+  "dependencies": {
+    "js-yaml": {
+      "version": "3.5.3",
+      "resolved": "https://registry.npmjs.org/js-yaml/-/js-yaml-3.5.3.tgz",
+      "from": "js-yaml@3.5.3",
+      "dependencies": {
+        "argparse": {
+          "version": "1.0.7",
+          "resolved": "https://registry.npmjs.org/argparse/-/argparse-1.0.7.tgz",
+          "from": "argparse@>=1.0.2 <2.0.0",
+          "dependencies": {
+            "sprintf-js": {
+              "version": "1.0.3",
+              "resolved": "https://registry.npmjs.org/sprintf-js/-/sprintf-js-1.0.3.tgz",
+              "from": "sprintf-js@>=1.0.2 <1.1.0"
+            }
+          }
+        },
+        "esprima": {
+          "version": "2.7.2",
+          "resolved": "https://registry.npmjs.org/esprima/-/esprima-2.7.2.tgz",
+          "from": "esprima@>=2.6.0 <3.0.0"
+        }
+      }
+    },
+    "simple-git": {
+      "version": "1.32.0",
+      "resolved": "https://registry.npmjs.org/simple-git/-/simple-git-1.32.0.tgz",
+      "from": "simple-git@1.32.0"
+    },
+    "swagger-to-typescript": {
+      "version": "1.0.16",
+      "resolved": "https://registry.npmjs.org/swagger-to-typescript/-/swagger-to-typescript-1.0.16.tgz",
+      "from": "swagger-to-typescript@1.0.16"
+    }
+  }
+}
