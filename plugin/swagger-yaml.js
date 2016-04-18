@@ -34,12 +34,14 @@ class SwaggerCompiler {
   cloneRemoteDefinitionsRepository() {
     const repository = this.config.repository;
     const commitId = this.config.commitId || "";
+    console.log('commitId',commitId)
     if (!repository) {
       return
     }
     this._deleteFolderRecursive(DEFINITIONS_PATH);
     let fut = new Future();
-    simpleGit.clone(repository, './swagger-definitions').then(() => {
+    simpleGit.clone(repository, './swagger-definitions')
+      .then(() => {
       this._deleteFolderRecursive(`${DEFINITIONS_PATH}/.git`);
       fut.return()
     }, () => {

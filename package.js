@@ -25,7 +25,7 @@ Package.registerBuildPlugin({
   ],
   npmDependencies: {
     'js-yaml': '3.5.3',
-    'simple-git': '1.32.0',
+    'simple-git': '1.32.1',
     'swagger-to-typescript': '1.0.28'
   }
 });
