@@ -68,8 +68,11 @@ Swagger = {
     this.logger = logger;
   },
 
-  allowCors(origin) {
-    this.cors = origin;
+  allowCors(origin, headers) {
+    this.cors = {
+      origin: origin,
+      headers: headers || ''
+    };
   },
 
   loadSwaggerDefinition (identifier, definition) {
@@ -222,19 +225,32 @@ Swagger = {
 
     this.definitions.forEach((definition, identifier) => {
       swaggerTools.initializeMiddleware(definition, (middleware) => {
+        WebApp.connectHandlers.use(middleware.swaggerMetadata());
+
         if (Swagger.cors) {
           WebApp.connectHandlers.use((err, req, res, next) => {
-            res.setHeader('Access-Control-Allow-Origin', Swagger.cors);
+            res.setHeader('Access-Control-Allow-Origin', Swagger.cors.origin);
+            res.setHeader('Access-Control-Allow-Headers', Swagger.cors.headers);
 
-            next();
+            if (req.method === "OPTIONS") {
+              console.log("Cors!");
+
+              res.statusCode = 200;
+              res.write("");
+              res.end();
+            }
+            else {
+              console.log("Not cors, continue...");
+              next();
+            }
           });
         }
 
-        WebApp.connectHandlers.use(middleware.swaggerMetadata());
         WebApp.connectHandlers.use(middleware.swaggerValidator());
         WebApp.connectHandlers.use(middleware.swaggerRouter({
           controllers,
-          useStubs: this.stubs
+          useStubs: this.stubs,
+          ignoreMissingHandlers: true
         }));
 
         if (Swagger.errorHandler) {
