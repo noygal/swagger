@@ -34,7 +34,6 @@ class SwaggerCompiler {
   cloneRemoteDefinitionsRepository() {
     const repository = this.config.repository;
     const commitId = this.config.commitId || "";
-    console.log('commitId',commitId)
     if (!repository) {
       return
     }
