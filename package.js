@@ -1,6 +1,6 @@
 Package.describe({
   name: 'guild:swagger',
-  version: '0.0.47',
+  version: '0.0.48',
   // Brief, one-line summary of the package.
   summary: 'Rest API based on swagger',
   // URL to the Git repository containing the source code for this package.
@@ -14,7 +14,7 @@ Npm.depends({
   'swagger-tools' : '0.10.1',
   'swagger-client': 'https://github.com/dotansimha/swagger-js/archive/087753c582727f712147118776083972f7c22e73.tar.gz',
   'js-yaml': '3.5.5',
-  'swagger-to-typescript': '1.0.34'
+  'swagger-to-typescript': '1.0.35'
 });
 
 Package.registerBuildPlugin({
@@ -26,7 +26,7 @@ Package.registerBuildPlugin({
   npmDependencies: {
     'js-yaml': '3.5.3',
     'simple-git': '1.32.1',
-    'swagger-to-typescript': '1.0.34'
+    'swagger-to-typescript': '1.0.35'
   }
 });
 
