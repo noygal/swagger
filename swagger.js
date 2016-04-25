@@ -15,14 +15,22 @@ function isPromise(obj) {
   return !!obj && (typeof obj === 'object' || typeof obj === 'function') && typeof obj.then === 'function';
 }
 
-function handleError(res, err, next) {
+function handleError(err, req, res, next) {
+  if(!err) next();
+
   if (err instanceof Swagger.Error) {
     res.statusCode = err.httpCode;
     writeJsonToBody(res, err.error);
     res.end();
+  } else if (typeof err === "string") {
+    res.statusCode = err.httpCode;
+    writeJsonToBody(res, {code: 0, message: err});
+    res.end();
   }
   else {
-    next(err);
+    res.statusCode = 500
+    writeJsonToBody(res, "Unknown error");
+    res.end();
   }
 }
 
@@ -45,14 +53,14 @@ Swagger = {
   logger: console,
   errorHandler: undefined,
 
-  Error: class Error {
+  Error: class SwaggerError {
     constructor(httpCode, error) {
       this.httpCode = httpCode;
 
       if (typeof error === 'string') {
         error = {
           code: httpCode,
-          reason: error
+          message: error
         }
       }
 
@@ -190,11 +198,11 @@ Swagger = {
               res.end();
             })
             .catch((error) => {
-              handleError(res, error, next);
+              handleError(error, req, res, next);
             });
         }
         catch (error) {
-          handleError(res, error, next);
+          handleError(error, req, res, next);
         }
       });
     });
