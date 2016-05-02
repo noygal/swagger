@@ -1,7 +1,7 @@
 let Future = Npm.require('fibers/future');
 let safeLoad = Npm.require('js-yaml').safeLoad;
 let swaggerToTypeScript = Npm.require('swagger-to-typescript');
-let simpleGit = require('simple-git')();
+let _simpleGit = require('simple-git');
 let fs = require('fs');
 
 const CLIENT_SWAGGER_SUFFIX = ".swagger-client.yaml";
@@ -39,13 +39,23 @@ class SwaggerCompiler {
     }
     this._deleteFolderRecursive(DEFINITIONS_PATH);
     let fut = new Future();
-    simpleGit.clone(repository, './swagger-definitions')
-      .then(() => {
-      this._deleteFolderRecursive(`${DEFINITIONS_PATH}/.git`);
-      fut.return()
-    }, () => {
-      console.error(`[Swagger YAML] Fatal Error: cannot load swagger definitions from ${repository}`);
-      fut.return()
+    let a = _simpleGit().clone(repository, './swagger-definitions', (err) => {
+      if(err){
+        console.error(`[Swagger YAML] Fatal Error1: cannot load swagger definitions from ${repository}`, err);
+        fut.return()
+        return
+      }
+      console.log(`[Swagger YAML] Successfully cloned the remote repo ${repository}.`);
+      _simpleGit('./swagger-definitions').checkout(commitId, (err) => {
+        if(err){
+          console.error(`[Swagger YAML] Fatal Error2: cannot load swagger definitions from ${repository}`, err);
+          fut.return()
+          return
+        }
+        console.log(`[Swagger YAML] Successfully checked-out commit #${commitId}.`);
+        this._deleteFolderRecursive(`${DEFINITIONS_PATH}/.git`);
+        fut.return()
+      })
     })
     return fut.wait()
   }
