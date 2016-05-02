@@ -1,6 +1,6 @@
 Package.describe({
   name: 'guild:swagger',
-  version: '0.0.54',
+  version: '0.0.55',
   // Brief, one-line summary of the package.
   summary: 'Rest API based on swagger',
   // URL to the Git repository containing the source code for this package.
@@ -13,8 +13,7 @@ Package.describe({
 Npm.depends({
   'swagger-tools' : '0.10.1',
   'swagger-client': 'https://github.com/dotansimha/swagger-js/archive/087753c582727f712147118776083972f7c22e73.tar.gz',
-  'js-yaml': '3.5.5',
-  'swagger-to-typescript': '1.0.48'
+  'js-yaml': '3.5.5'
 });
 
 Package.registerBuildPlugin({
@@ -24,9 +23,9 @@ Package.registerBuildPlugin({
     'plugin/swagger-yaml.js'
   ],
   npmDependencies: {
-    'js-yaml': '3.5.3',
+    'js-yaml': '3.5.5',
     'simple-git': '1.32.1',
-    'swagger-to-typescript': '1.0.48'
+    'swagger-to-typescript': '1.0.49'
   }
 });
 
@@ -38,7 +37,7 @@ Package.onUse(function(api) {
     'isobuild:compiler-plugin@1.0.0',
     'webapp']);
   api.addFiles('swagger.js', 'server');
-  api.export(['ISwaggerRequestTransform', 'Swagger']);
+  api.export(['Swagger']);
 });
 
 Package.onTest(function(api) {
