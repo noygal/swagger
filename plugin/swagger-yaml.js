@@ -47,7 +47,6 @@ class SwaggerCompiler extends CachingCompiler {
   }
 
   handleOneSwaggerFile(file) {
-    console.log(file);
     let content;
 
     if (file.getBasename().indexOf(SERVER_SWAGGER_SUFFIX) > -1) {
