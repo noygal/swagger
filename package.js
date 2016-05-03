@@ -18,7 +18,7 @@ Npm.depends({
 
 Package.registerBuildPlugin({
   name: 'swagger',
-  use: ['ecmascript', 'caching-compiler'],
+  use: ['ecmascript', 'caching-compiler@1.0.4'],
   sources: [
     'plugin/swagger-yaml.js'
   ],
