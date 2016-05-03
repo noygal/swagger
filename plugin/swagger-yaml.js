@@ -8,108 +8,117 @@ const CLIENT_SWAGGER_SUFFIX = ".swagger-client.yaml";
 const SERVER_SWAGGER_SUFFIX = ".swagger-server.yaml";
 const COMMON_SWAGGER_SUFFIX = ".swagger.yaml";
 const DEFINITIONS_PATH = "./swagger-definitions";
+const CONFIG_FILE = "./swagger-config.json";
+const LOG_IDENTIFIER = "[Swagger YAML] ";
 
-let alreadyRun = false;
+function log() {
+  console.log.apply(undefined, [LOG_IDENTIFIER].concat(Array.prototype.slice.call(arguments)));
+}
 
 class SwaggerCompiler {
   constructor() {
-    this.gitRepo = null;
+    this.gitCommitId = "";
     this.config = {};
-  }
 
-  locateAndProcessConfigFile(files) {
-    let configFile = '';
-
-    files.forEach((file) => {
-      if (file.getBasename() === "swagger-config.json") {
-        configFile = file.getContentsAsString();
+    if (fs.existsSync(CONFIG_FILE)) {
+      try {
+        let rawContent = fs.readFileSync(CONFIG_FILE, 'utf8');
+        this.config = JSON.parse(rawContent);
+        this.cloneRemoteDefinitionsRepository();
       }
-    });
-
-    this.config = JSON.parse(configFile);
-
-    return this.config;
+      catch (e) {
+        log("Unable to read and parse swagger-config.json file", e);
+        throw "Unable to read and parse swagger-config.json file!";
+      }
+    }
   }
 
   cloneRemoteDefinitionsRepository() {
     const repository = this.config.repository;
     const commitId = this.config.commitId || "";
     if (!repository) {
-      return
+      return;
     }
-    this._deleteFolderRecursive(DEFINITIONS_PATH);
+
     let fut = new Future();
-    let a = _simpleGit().clone(repository, './swagger-definitions', (err) => {
-      if(err){
-        console.error(`[Swagger YAML] Fatal Error1: cannot load swagger definitions from ${repository}`, err);
-        fut.return()
-        return
-      }
-      console.log(`[Swagger YAML] Successfully cloned the remote repo ${repository}.`);
-      _simpleGit('./swagger-definitions').checkout(commitId, (err) => {
-        if(err){
-          console.error(`[Swagger YAML] Fatal Error2: cannot load swagger definitions from ${repository}`, err);
-          fut.return()
-          return
+
+    if (this.gitCommitId != commitId) {
+      this._deleteFolderRecursive(DEFINITIONS_PATH);
+
+      _simpleGit().clone(repository, './swagger-definitions', (err) => {
+        if (err) {
+          log(`Fatal Error: cannot load swagger definitions from ${repository}`, err);
+
+          return fut.return();
         }
-        console.log(`[Swagger YAML] Successfully checked-out commit #${commitId}.`);
-        this._deleteFolderRecursive(`${DEFINITIONS_PATH}/.git`);
-        fut.return()
-      })
-    })
-    return fut.wait()
+        log(`Successfully cloned the remote repo ${repository}.`);
+        _simpleGit('./swagger-definitions').checkout(commitId, (err) => {
+          if (err) {
+            log(`Fatal Error: cannot checkout the specific commit id definitions from ${repository}`, err);
+
+            return fut.return();
+          }
+
+          log(`Successfully checked-out commit #${commitId}.`);
+          this._deleteFolderRecursive(`${DEFINITIONS_PATH}/.git`);
+
+          return fut.return();
+        })
+      });
+    }
+    else {
+      fut.return();
+    }
+
+    return fut.wait();
   }
 
   generateTypings(file) {
     let fut = new Future();
     let definitionName = this._camelize(this._apiIdentifierName(file));
-    console.log(`[Swagger Yaml] generate typings for ${definitionName}`)
+    log(`Generating Typings files for ${definitionName}...`);
+
     swaggerToTypeScript(file.getPathInPackage(), './typings', definitionName, null, () => {
-      fut.return()
+      fut.return();
     });
-    return fut.wait()
+
+    return fut.wait();
   }
-  
+
   handleClient(file) {
     let apiIdentifier = this._apiIdentifierName(file);
     let swaggerDoc = JSON.stringify(safeLoad(file.getContentsAsString()));
+    log(`Loaded client definition for "${apiIdentifier}"`);
 
-    console.log(`[Swagger Yaml] create client for ${apiIdentifier}`)
     return `Swagger.createClient('${apiIdentifier}', ${swaggerDoc});`;
   }
 
   handleServer(file) {
     let apiIdentifier = this._apiIdentifierName(file);
     let swaggerDoc = JSON.stringify(safeLoad(file.getContentsAsString()));
-
-    console.log(`[Swagger Yaml] load server defintion for ${apiIdentifier}`)
+    log(`Loaded server definition for "${apiIdentifier}"`);
 
     return `Swagger.loadSwaggerDefinition("${apiIdentifier}",${swaggerDoc})`;
   }
 
-  generateInterfaces(file, className) {
-    let fileContent = safeLoad(file.getContentsAsString());
-  }
-
   processFilesForTarget(files) {
-    let config = this.locateAndProcessConfigFile(files);
-
-    if(!alreadyRun) this.cloneRemoteDefinitionsRepository();
-    
     files.forEach((file) => {
       let content;
 
+
       if (file.getBasename().indexOf(SERVER_SWAGGER_SUFFIX) > -1) {
         content = this.handleServer(file);
+        this.config.generateTypings && this.generateTypings(file);
       }
       else if (file.getBasename().indexOf(CLIENT_SWAGGER_SUFFIX) > -1) {
         content = this.handleClient(file);
+        this.config.generateTypings && this.generateTypings(file);
       }
       else if (file.getBasename().indexOf(COMMON_SWAGGER_SUFFIX) > -1) {
         let cleanFilename = this._apiIdentifierName(file);
 
-        if (config.api[cleanFilename]) {
-          let apiType = config.api[cleanFilename];
+        if (this.config.api[cleanFilename]) {
+          let apiType = this.config.api[cleanFilename];
 
           if (apiType === "client") {
             content = this.handleClient(file);
@@ -117,6 +126,8 @@ class SwaggerCompiler {
           else if (apiType === "server") {
             content = this.handleServer(file);
           }
+
+          this.config.generateTypings && this.generateTypings(file);
         }
       }
 
@@ -127,54 +138,36 @@ class SwaggerCompiler {
         });
       }
     });
-
-    if (!alreadyRun && config.generateTypings) {
-      files.forEach((file) => {
-        if (file.getBasename().indexOf(SERVER_SWAGGER_SUFFIX) > -1) {
-          this.generateTypings(file)
-        }
-        else if (file.getBasename().indexOf(CLIENT_SWAGGER_SUFFIX) > -1) {
-          this.generateTypings(file)
-        }
-        else if (file.getBasename().indexOf(COMMON_SWAGGER_SUFFIX) > -1) {
-          let cleanFilename = this._apiIdentifierName(file);
-
-          if (config.api[cleanFilename]) {
-            this.generateTypings(file)
-          }
-        }
-      })
-    }
-
-    alreadyRun = true
   }
 
   _apiIdentifierName(file) {
     return file.getBasename().replace(SERVER_SWAGGER_SUFFIX, '').replace(CLIENT_SWAGGER_SUFFIX, '').replace(COMMON_SWAGGER_SUFFIX, '');
   }
+
   _deleteFolderRecursive(path) {
     if (fs.existsSync(path)) {
-      fs.readdirSync(path).forEach((file, index) => {
-        var curPath = path + "/" + file;
-        if (fs.lstatSync(curPath).isDirectory()) {
+      fs.readdirSync(path).forEach((file) => {
+        let curPath = path + "/" + file;
+
+        if (fs.lstatSync(curPath).isDirectory())
           this._deleteFolderRecursive(curPath);
-        } else {
+        else
           fs.unlinkSync(curPath);
-        }
       });
+
       fs.rmdirSync(path);
     }
   }
+
   _camelize(str) {
     return str.replace(/(?:^|[-_])(\w)/g, function (_, c) {
       return c ? c.toUpperCase() : '';
-    })
+    });
   }
 }
 
 Plugin.registerCompiler({
-  extensions: ['swagger-server.yaml', 'swagger-client.yaml', 'swagger.yaml'],
-  filenames: ['swagger-config.json']
+  extensions: ['swagger-server.yaml', 'swagger-client.yaml', 'swagger.yaml']
 }, function () {
   return new SwaggerCompiler();
 });
