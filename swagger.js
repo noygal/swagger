@@ -28,8 +28,10 @@ function handleError(err, req, res, next) {
     res.end();
   }
   else {
-    res.statusCode = 500
-    writeJsonToBody(res, "Unknown error");
+    Swagger.logger.warn("Unkown error object", err);
+
+    res.statusCode = 500;
+    writeJsonToBody(res, {code: 500, error: "Unknown error"});
     res.end();
   }
 }
