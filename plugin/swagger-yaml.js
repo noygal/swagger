@@ -15,8 +15,13 @@ function log() {
   console.log.apply(undefined, [LOG_IDENTIFIER].concat(Array.prototype.slice.call(arguments)));
 }
 
-class SwaggerCompiler {
+class SwaggerCompiler extends CachingCompiler {
   constructor() {
+    super({
+      compilerName: 'SwaggerCompiler',
+      defaultCacheSize: 1024 * 1024 * 10
+    });
+
     this.gitCommitId = "";
     this.config = {};
 
@@ -31,6 +36,61 @@ class SwaggerCompiler {
         throw "Unable to read and parse swagger-config.json file!";
       }
     }
+  }
+
+  getCacheKey(inputFile) {
+    return inputFile.getSourceHash();
+  }
+
+  compileResultSize(compileResult) {
+    return compileResult.source.length + compileResult.sourceMap.length;
+  }
+
+  handleOneSwaggerFile(file) {
+    console.log(file);
+    let content;
+
+    if (file.getBasename().indexOf(SERVER_SWAGGER_SUFFIX) > -1) {
+      content = this.handleServer(file);
+      this.config.generateTypings && this.generateTypings(file);
+    }
+    else if (file.getBasename().indexOf(CLIENT_SWAGGER_SUFFIX) > -1) {
+      content = this.handleClient(file);
+      this.config.generateTypings && this.generateTypings(file);
+    }
+    else if (file.getBasename().indexOf(COMMON_SWAGGER_SUFFIX) > -1) {
+      let cleanFilename = this._apiIdentifierName(file);
+
+      if (this.config.api[cleanFilename]) {
+        let apiType = this.config.api[cleanFilename];
+
+        if (apiType === "client") {
+          content = this.handleClient(file);
+        }
+        else if (apiType === "server") {
+          content = this.handleServer(file);
+        }
+
+        this.config.generateTypings && this.generateTypings(file);
+      }
+    }
+
+    content = content || '';
+
+    return {source: content, sourceMap: content};
+  }
+
+  addCompileResult(inputFile, compileResult) {
+    let filePath = 'server/' + inputFile.getPathInPackage() + '.js';
+
+    inputFile.addJavaScript({
+      data: compileResult.source,
+      path: filePath
+    });
+  }
+
+  compileOneFile(inputFile) {
+    return this.handleOneSwaggerFile(inputFile);
   }
 
   cloneRemoteDefinitionsRepository() {
@@ -99,45 +159,6 @@ class SwaggerCompiler {
     log(`Loaded server definition for "${apiIdentifier}"`);
 
     return `Swagger.loadSwaggerDefinition("${apiIdentifier}",${swaggerDoc})`;
-  }
-
-  processFilesForTarget(files) {
-    files.forEach((file) => {
-      let content;
-
-
-      if (file.getBasename().indexOf(SERVER_SWAGGER_SUFFIX) > -1) {
-        content = this.handleServer(file);
-        this.config.generateTypings && this.generateTypings(file);
-      }
-      else if (file.getBasename().indexOf(CLIENT_SWAGGER_SUFFIX) > -1) {
-        content = this.handleClient(file);
-        this.config.generateTypings && this.generateTypings(file);
-      }
-      else if (file.getBasename().indexOf(COMMON_SWAGGER_SUFFIX) > -1) {
-        let cleanFilename = this._apiIdentifierName(file);
-
-        if (this.config.api[cleanFilename]) {
-          let apiType = this.config.api[cleanFilename];
-
-          if (apiType === "client") {
-            content = this.handleClient(file);
-          }
-          else if (apiType === "server") {
-            content = this.handleServer(file);
-          }
-
-          this.config.generateTypings && this.generateTypings(file);
-        }
-      }
-
-      if (content) {
-        file.addJavaScript({
-          data: content,
-          path: 'server/' + file.getPathInPackage() + '.js'
-        });
-      }
-    });
   }
 
   _apiIdentifierName(file) {

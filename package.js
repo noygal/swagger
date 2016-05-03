@@ -1,6 +1,6 @@
 Package.describe({
   name: 'guild:swagger',
-  version: '0.0.62',
+  version: '0.0.63',
   // Brief, one-line summary of the package.
   summary: 'Rest API based on swagger',
   // URL to the Git repository containing the source code for this package.
@@ -18,7 +18,7 @@ Npm.depends({
 
 Package.registerBuildPlugin({
   name: 'swagger',
-  use: ['ecmascript'],
+  use: ['ecmascript', 'caching-compiler'],
   sources: [
     'plugin/swagger-yaml.js'
   ],

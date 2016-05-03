@@ -95,7 +95,6 @@ Swagger = {
     }
   },
 
-
   Operation (operationId) {
     return function (target, name) {
       let controllerOperations = Swagger.registeredControllers.get(target.constructor);
