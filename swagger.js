@@ -4,10 +4,21 @@ let url = Npm.require('url');
 
 function writeJsonToBody(res, json) {
   if (json !== undefined) {
-    var shouldPrettyPrint = (process.env.NODE_ENV === 'development');
-    var spacer = shouldPrettyPrint ? 2 : null;
-    res.setHeader('Content-type', 'application/json');
-    res.write(JSON.stringify(json, null, spacer));
+    let shouldPrettyPrint = (process.env.NODE_ENV === 'development');
+    let spacer = shouldPrettyPrint ? 2 : null;
+    let contentType = 'application/json';
+    let content = json;
+
+    if (!_.isObject(json) && _.isString(json) && (json.indexOf("<?xml") > -1 || json.indexOf("<?XML") > -1)) {
+      content = json;
+      contentType = "text/xml";
+    }
+    else if(_.isObject(json)) {
+      content = JSON.stringify(json, null, spacer);
+    }
+
+    res.setHeader('Content-type', contentType);
+    res.write(content);
   }
 }
 
@@ -54,6 +65,7 @@ Swagger = {
   definitions: new Map(),
   logger: console,
   errorHandler: undefined,
+  externalConnectMiddlewares: [],
 
   Error: class SwaggerError {
     constructor(httpCode, error) {
@@ -68,6 +80,10 @@ Swagger = {
 
       this.error = error;
     }
+  },
+
+  addConnectMiddleware(middlewareFn) {
+    this.externalConnectMiddlewares.push(middlewareFn);
   },
 
   setErrorHandler(errHandler) {
@@ -231,6 +247,10 @@ Swagger = {
 
     this.definitions.forEach((definition, identifier) => {
       swaggerTools.initializeMiddleware(definition, (middleware) => {
+        Swagger.externalConnectMiddlewares.forEach((middlewareFn) => {
+          WebApp.connectHandlers.use(middlewareFn);
+        });
+
         if (Swagger.cors) {
           WebApp.connectHandlers.use((err, req, res, next) => {
             res.setHeader('Access-Control-Allow-Origin', Swagger.cors);
