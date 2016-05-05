@@ -11,6 +11,8 @@ const DEFINITIONS_PATH = "./swagger-definitions";
 const CONFIG_FILE = "./swagger-config.json";
 const LOG_IDENTIFIER = "[Swagger YAML] ";
 
+let isGenerated = false;
+
 function log() {
   console.log.apply(undefined, [LOG_IDENTIFIER].concat(Array.prototype.slice.call(arguments)));
 }
@@ -30,7 +32,7 @@ class SwaggerCompiler extends CachingCompiler {
         let rawContent = fs.readFileSync(CONFIG_FILE, 'utf8');
         this.config = JSON.parse(rawContent);
         this.cloneRemoteDefinitionsRepository();
-        this.config.generateTypings && this.generateAllTypings(DEFINITIONS_PATH);
+        this.config.generateTypings && !isGenerated && this.generateAllTypings(DEFINITIONS_PATH);
       }
       catch (e) {
         log("Unable to read and parse swagger-config.json file", e);
@@ -52,6 +54,8 @@ class SwaggerCompiler extends CachingCompiler {
         }
       }
     });
+
+    isGenerated = true;
   }
 
   getCacheKey(inputFile) {
@@ -178,6 +182,10 @@ class SwaggerCompiler extends CachingCompiler {
   }
 
   _apiIdentifierName(filePath) {
+    if (typeof filePath !== "string") {
+      filePath = filePath.getBasename();
+    }
+
     return filePath.replace(SERVER_SWAGGER_SUFFIX, '').replace(CLIENT_SWAGGER_SUFFIX, '').replace(COMMON_SWAGGER_SUFFIX, '');
   }
 
