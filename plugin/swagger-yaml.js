@@ -30,12 +30,28 @@ class SwaggerCompiler extends CachingCompiler {
         let rawContent = fs.readFileSync(CONFIG_FILE, 'utf8');
         this.config = JSON.parse(rawContent);
         this.cloneRemoteDefinitionsRepository();
+        this.config.generateTypings && this.generateAllTypings(DEFINITIONS_PATH);
       }
       catch (e) {
         log("Unable to read and parse swagger-config.json file", e);
         throw "Unable to read and parse swagger-config.json file!";
       }
     }
+  }
+
+  generateAllTypings(path) {
+    fs.readdirSync(path).forEach((file) => {
+      let curPath = path + "/" + file;
+
+      if (fs.lstatSync(curPath).isDirectory()) {
+        this.generateAllTypings(curPath);
+      }
+      else {
+        if (curPath.indexOf("swagger.yaml") > -1) {
+          this.generateTypings(curPath, file);
+        }
+      }
+    });
   }
 
   getCacheKey(inputFile) {
@@ -51,11 +67,9 @@ class SwaggerCompiler extends CachingCompiler {
 
     if (file.getBasename().indexOf(SERVER_SWAGGER_SUFFIX) > -1) {
       content = this.handleServer(file);
-      this.config.generateTypings && this.generateTypings(file);
     }
     else if (file.getBasename().indexOf(CLIENT_SWAGGER_SUFFIX) > -1) {
       content = this.handleClient(file);
-      this.config.generateTypings && this.generateTypings(file);
     }
     else if (file.getBasename().indexOf(COMMON_SWAGGER_SUFFIX) > -1) {
       let cleanFilename = this._apiIdentifierName(file);
@@ -69,8 +83,6 @@ class SwaggerCompiler extends CachingCompiler {
         else if (apiType === "server") {
           content = this.handleServer(file);
         }
-
-        this.config.generateTypings && this.generateTypings(file);
       }
     }
 
@@ -95,6 +107,7 @@ class SwaggerCompiler extends CachingCompiler {
   cloneRemoteDefinitionsRepository() {
     const repository = this.config.repository;
     const commitId = this.config.commitId || "";
+
     if (!repository) {
       return;
     }
@@ -132,16 +145,20 @@ class SwaggerCompiler extends CachingCompiler {
     return fut.wait();
   }
 
-  generateTypings(file) {
-    let fut = new Future();
-    let definitionName = this._camelize(this._apiIdentifierName(file));
-    log(`Generating Typings files for ${definitionName}...`);
+  generateTypings(filePath, fileName) {
+    let cleanFileName = this._apiIdentifierName(fileName);
+    let definitionName = this._camelize(cleanFileName);
 
-    swaggerToTypeScript(file.getPathInPackage(), './typings', definitionName, null, () => {
-      fut.return();
-    });
+    if (this.config.api[cleanFileName]) {
+      let fut = new Future();
+      log(`Generating Typings files for ${definitionName}...`);
 
-    return fut.wait();
+      swaggerToTypeScript(filePath, './typings', definitionName, null, () => {
+        fut.return();
+      });
+
+      return fut.wait();
+    }
   }
 
   handleClient(file) {
@@ -160,8 +177,8 @@ class SwaggerCompiler extends CachingCompiler {
     return `Swagger.loadSwaggerDefinition("${apiIdentifier}",${swaggerDoc})`;
   }
 
-  _apiIdentifierName(file) {
-    return file.getBasename().replace(SERVER_SWAGGER_SUFFIX, '').replace(CLIENT_SWAGGER_SUFFIX, '').replace(COMMON_SWAGGER_SUFFIX, '');
+  _apiIdentifierName(filePath) {
+    return filePath.replace(SERVER_SWAGGER_SUFFIX, '').replace(CLIENT_SWAGGER_SUFFIX, '').replace(COMMON_SWAGGER_SUFFIX, '');
   }
 
   _deleteFolderRecursive(path) {
