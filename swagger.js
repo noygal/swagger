@@ -192,14 +192,16 @@ Swagger = {
     let controllers = {};
 
     this.handlers.forEach(({controller, operationId, context, cb, transformers, namedParameters}) => {
+      context = context || Swagger.instances.get(controller);
+
+      if (!context) {
+        delete controllers[`${controller.controllerName}_${operationId}`];
+        
+        return;
+      }
+      
       // TODO: Separate to private function and explain logic with links
       controllers[`${controller.controllerName}_${operationId}`] = Meteor.bindEnvironment(function routeToHandler(req, res, next) {
-        context = context || Swagger.instances.get(controller);
-
-        if (Swagger.raw) {
-          Swagger.logger.log('verbose', "Got " + operationId + ' with raw params: ', req.swagger.params);
-        }
-
         try {
           getArgsFromParams(transformers, req.swagger.params)
             .then((args) => {
@@ -367,7 +369,6 @@ function getArgsFromParams(transformers, params) {
 
     index++;
   });
-
   return Promise.all(promises);
 }
 
