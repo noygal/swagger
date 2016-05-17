@@ -32,11 +32,18 @@ class SwaggerCompiler extends CachingCompiler {
         let rawContent = fs.readFileSync(CONFIG_FILE, 'utf8');
         this.config = JSON.parse(rawContent);
         this.cloneRemoteDefinitionsRepository();
-        this.config.generateTypings && !isGenerated && this.generateAllTypings(DEFINITIONS_PATH);
       }
       catch (e) {
         log("Unable to read and parse swagger-config.json file", e);
-        throw "Unable to read and parse swagger-config.json file!";
+        throw new Error("Unable to read and parse swagger-config.json file!");
+      }
+
+      try {
+        this.config.generateTypings && !isGenerated && this.generateAllTypings(DEFINITIONS_PATH);
+      }
+      catch (e) {
+        log("Unable to generate typings due error:", e);
+        throw e;
       }
     }
   }
