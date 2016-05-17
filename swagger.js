@@ -26,7 +26,7 @@ function isPromise(obj) {
   return !!obj && (typeof obj === 'object' || typeof obj === 'function') && typeof obj.then === 'function';
 }
 
-function handleError(err, req, res, next) {
+function defaultErrorHandler(err, req, res, next) {
   if(!err) next();
 
   if (err instanceof Swagger.Error) {
@@ -217,11 +217,11 @@ Swagger = {
               res.end();
             })
             .catch((error) => {
-              handleError(error, req, res, next);
+              Swagger.errorHandler ? Swagger.errorHandler(error, req, res, next) : defaultErrorHandler(error, req, res, next);
             });
         }
         catch (error) {
-          handleError(error, req, res, next);
+          defaultErrorHandler(error, req, res, next);
         }
       });
     });
