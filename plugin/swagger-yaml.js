@@ -10,6 +10,7 @@ const COMMON_SWAGGER_SUFFIX = ".swagger.yaml";
 const DEFINITIONS_PATH = "./swagger-definitions";
 const CONFIG_FILE = "./swagger-config.json";
 const LOG_IDENTIFIER = "[Swagger YAML] ";
+const TYPINGS_PATH = "./server/typings/generated/";
 
 let isGenerated = false;
 
@@ -49,6 +50,8 @@ class SwaggerCompiler extends CachingCompiler {
   }
 
   generateAllTypings(path) {
+    this._deleteFolderRecursive(TYPINGS_PATH);
+
     fs.readdirSync(path).forEach((file) => {
       let curPath = path + "/" + file;
 
@@ -164,7 +167,7 @@ class SwaggerCompiler extends CachingCompiler {
       let fut = new Future();
       log(`Generating Typings files for ${definitionName}...`);
 
-      swaggerToTypeScript(filePath, './typings', definitionName, null, () => {
+      swaggerToTypeScript(filePath, TYPINGS_PATH, definitionName, null, () => {
         fut.return();
       });
 
