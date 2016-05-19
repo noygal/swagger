@@ -40,7 +40,13 @@ class SwaggerCompiler extends CachingCompiler {
       }
 
       try {
-        this.config.generateTypings && !isGenerated && this._deleteFolderRecursive(TYPINGS_PATH) && this.generateAllTypings(DEFINITIONS_PATH);
+        if (this.config.generateTypings && !isGenerated) {
+          log("Removing old typings...");
+          this._deleteFolderRecursive(TYPINGS_PATH);
+          log("Generating typings...");
+          this.generateAllTypings(DEFINITIONS_PATH);
+          log("Done generating typings...");
+        }
       }
       catch (e) {
         log("Unable to generate typings due error:", e);
