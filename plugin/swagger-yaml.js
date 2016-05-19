@@ -40,7 +40,7 @@ class SwaggerCompiler extends CachingCompiler {
       }
 
       try {
-        this.config.generateTypings && !isGenerated && this.generateAllTypings(DEFINITIONS_PATH);
+        this.config.generateTypings && !isGenerated && this._deleteFolderRecursive(TYPINGS_PATH) && this.generateAllTypings(DEFINITIONS_PATH);
       }
       catch (e) {
         log("Unable to generate typings due error:", e);
@@ -50,8 +50,6 @@ class SwaggerCompiler extends CachingCompiler {
   }
 
   generateAllTypings(path) {
-    this._deleteFolderRecursive(TYPINGS_PATH);
-
     fs.readdirSync(path).forEach((file) => {
       let curPath = path + "/" + file;
 
