@@ -210,12 +210,12 @@ Swagger = {
               });
 
               if(Swagger.debug) {
-                Swagger.logger.log('debug', `### Running handler for ${controller.controllerName}#${operationId} with params:`)
+                Swagger.logger.log('debug', `#### Running handler for ${controller.controllerName}#${operationId} with params:`)
                 for (var key of Object.keys(req.swagger.params)) {
                   Swagger.logger.log('debug', `${key}=`,req.swagger.params[key].value)
                 }
+                Swagger.logger.log('debug', `End params for ${controller.controllerName}_${operationId} ####`)
               }
-              Swagger.logger.log('debug', `End params for ${controller.controllerName}_${operationId} ###`)
 
               return cb.apply(context, args);
             })
