@@ -228,7 +228,11 @@ Swagger = {
             });
         }
         catch (error) {
-          defaultErrorHandler(error, req, res, next);
+          try {
+            Swagger.errorHandler ? Swagger.errorHandler(error, req, res, next) : defaultErrorHandler(error, req, res, next);
+          } catch (e) {
+            defaultErrorHandler(error, req, res, next);
+          }
         }
       });
     });
