@@ -2,6 +2,7 @@ let swaggerClient = Npm.require('swagger-client');
 
 class SwaggerClient {
   constructor(name, swaggerDefinition, options = {debug: false, logger: console}) {
+    this.name = name;
     this.promise = new Promise((resolve) => {
       this.api = new swaggerClient({
         spec: swaggerDefinition,
@@ -18,7 +19,7 @@ class SwaggerClient {
                 }
 
                 if (options.debug) {
-                  options.logger.log('debug', "About to run operation " + operationKey + ' with transformed arguments: ', args);
+                  options.logger.log('debug', `## SwaggerClient(${this.name}) ## About to run operation " + operationKey + ' with transformed arguments: `, args);
                 }
 
                 return new Promise((resolve, reject) => {
