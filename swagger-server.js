@@ -21,25 +21,19 @@ function writeJsonToBody(res, json) {
   }
 }
 
-function isPromise(obj) {
-  return !!obj && (typeof obj === 'object' || typeof obj === 'function') && typeof obj.then === 'function';
-}
-
 function defaultErrorHandler(err, req, res, next) {
   if(!err) next();
 
-  if (err instanceof Swagger.Error) {
+  if (err instanceof SwaggerError) {
     res.statusCode = err.httpCode;
-    writeJsonToBody(res, err.error);
+    writeJsonToBody(res, err);
     res.end();
   } else if (typeof err === "string") {
-    res.statusCode = err.httpCode;
-    writeJsonToBody(res, {code: 0, message: err});
+    res.statusCode = 500;
+    writeJsonToBody(res, {errorCode: 0, errorMessage: err});
     res.end();
-  }
-  else {
+  } else {
     Swagger.logger.warn("Unkown error object", err);
-
     res.statusCode = 500;
     writeJsonToBody(res, {code: 500, error: "Unknown error"});
     res.end();
@@ -64,22 +58,7 @@ SwaggerServer = {
   logger: console,
   errorHandler: undefined,
   externalConnectMiddlewares: [],
-
-  Error: class SwaggerError {
-    constructor(httpCode, error) {
-      this.httpCode = httpCode;
-
-      if (typeof error === 'string') {
-        error = {
-          code: httpCode,
-          message: error
-        }
-      }
-
-      this.error = error;
-    }
-  },
-
+  
   addConnectMiddleware(middlewareFn) {
     this.externalConnectMiddlewares.push(middlewareFn);
   },
@@ -227,8 +206,10 @@ SwaggerServer = {
         }
         catch (error) {
           try {
+            let error = new SwaggerError(500, "0", "Fatal Error: unexpected error");
             Swagger.errorHandler ? Swagger.errorHandler(error, req, res, next) : defaultErrorHandler(error, req, res, next);
           } catch (e) {
+            let error = new SwaggerError(500, "0", "Fatal Error: handling error failed");
             defaultErrorHandler(error, req, res, next);
           }
         }
@@ -342,4 +323,19 @@ function getArgsFromParams(transformers, params) {
   return Promise.all(promises);
 }
 
-
+class SwaggerError extends Error {
+  constructor(httpCode, errorCode, errorMessage, details) {
+    this.httpCode = httpCode;
+    this.errorCode = errorCode;
+    this.errorMessage = errorMessage;
+    this.stack = (new Error()).stack;
+    this.details = details;
+  }
+  toJSON() {
+    return {
+      errorCode: this.errorCode,
+      errorMessage: this.errorMessage,
+      details: this.details
+    }
+  }
+}

@@ -38,7 +38,7 @@ Package.onUse(function(api) {
     'webapp']);
   api.addFiles('swagger-server.js', 'server');
   api.addFiles('swagger-client.js', 'server');
-  api.export(['SwaggerServer', 'SwaggerClient']);
+  api.export(['SwaggerServer', 'SwaggerClient', 'SwaggerError']);
 });
 
 Package.onTest(function(api) {
