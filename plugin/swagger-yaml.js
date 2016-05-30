@@ -83,13 +83,7 @@ class SwaggerCompiler extends CachingCompiler {
   handleOneSwaggerFile(file) {
     let content;
 
-    if (file.getBasename().indexOf(SERVER_SWAGGER_SUFFIX) > -1) {
-      content = this.handleServer(file);
-    }
-    else if (file.getBasename().indexOf(CLIENT_SWAGGER_SUFFIX) > -1) {
-      content = this.handleClient(file);
-    }
-    else if (file.getBasename().indexOf(COMMON_SWAGGER_SUFFIX) > -1) {
+    if (file.getBasename().indexOf(COMMON_SWAGGER_SUFFIX) > -1) {
       let cleanFilename = this._apiIdentifierName(file);
 
       if (this.config.api[cleanFilename]) {
@@ -182,17 +176,17 @@ class SwaggerCompiler extends CachingCompiler {
   handleClient(file) {
     let apiIdentifier = this._apiIdentifierName(file);
     let swaggerDoc = JSON.stringify(safeLoad(file.getContentsAsString()));
-    log(`Loaded client definition for "${apiIdentifier}"`);
+    log(`SwaggerConfig: added client definition for "${apiIdentifier}"`);
 
-    return `Swagger.createClient('${apiIdentifier}', ${swaggerDoc});`;
+    return `SwaggerConfig = SwaggerConfig || {}; SwaggerConfig['${apiIdentifier}'] = {type: 'client', definition: ${swaggerDoc}}`;
   }
 
   handleServer(file) {
     let apiIdentifier = this._apiIdentifierName(file);
     let swaggerDoc = JSON.stringify(safeLoad(file.getContentsAsString()));
-    log(`Loaded server definition for "${apiIdentifier}"`);
+    log(`SwaggerConfig: added server definition for "${apiIdentifier}"`);
 
-    return `Swagger.loadSwaggerDefinition("${apiIdentifier}",${swaggerDoc})`;
+    return `SwaggerConfig = SwaggerConfig || {}; SwaggerConfig['${apiIdentifier}'] = {type: 'server', definition: ${swaggerDoc}}`;
   }
 
   _apiIdentifierName(filePath) {
@@ -226,7 +220,7 @@ class SwaggerCompiler extends CachingCompiler {
 }
 
 Plugin.registerCompiler({
-  extensions: ['swagger-server.yaml', 'swagger-client.yaml', 'swagger.yaml']
+  extensions: ['swagger.yaml']
 }, function () {
   return new SwaggerCompiler();
 });

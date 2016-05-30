@@ -1,5 +1,4 @@
 let swaggerTools = Npm.require('swagger-tools');
-let swaggerClient = Npm.require('swagger-client');
 let url = Npm.require('url');
 
 function writeJsonToBody(res, json) {
@@ -51,7 +50,7 @@ function inDevelopment() {
   return process.env.NODE_ENV === "development";
 }
 
-Swagger = {
+SwaggerServer = {
   debug: false,
   raw: false,
   cors: false,
@@ -61,7 +60,6 @@ Swagger = {
   registeredParamters: new Map(),
   instances: new Map(),
   argumentsTransforms: new Map(),
-  clients: new Map(),
   definitions: new Map(),
   logger: console,
   errorHandler: undefined,
@@ -98,7 +96,7 @@ Swagger = {
     this.cors = origin;
   },
 
-  loadSwaggerDefinition (identifier, definition) {
+  loadServerDefinition (identifier, definition) {
     let parsedUrl = url.parse(Meteor.absoluteUrl());
     definition.host = `${parsedUrl.host}`;
     this.definitions.set(identifier, definition);
@@ -294,46 +292,7 @@ Swagger = {
       });
     });
   },
-
-  createClient(name, swaggerDoc) {
-    let promise = new Promise((resolve) => {
-      let api = new swaggerClient({
-        spec: swaggerDoc,
-        success: () => {
-          _.forEach(api.apisArray, (currentApi) => {
-            let controller = api[currentApi.name];
-
-            _.forEach(controller.apis, (operationMetadata, operationKey) => {
-              let operation = controller[operationKey];
-
-              controller[operationKey] = function (...args) {
-                if (args.length === 0) {
-                  args = [{}];
-                }
-
-                if (Swagger.debug) {
-                  Swagger.logger.log('debug', "About to run operation " + operationKey + ' with transformed arguments: ', args);
-                }
-
-                return new Promise((resolve, reject) => {
-                  operation.apply(this, args.concat(resolve, reject));
-                });
-              }
-            })
-          });
-
-          resolve(api);
-        }
-      });
-    });
-
-    this.clients.set(name, promise);
-  },
-
-  client(name) {
-    return this.clients.get(name);
-  },
-
+  
   allowDocs() {
     this._allowDocs = true;
   }

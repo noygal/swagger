@@ -36,8 +36,9 @@ Package.onUse(function(api) {
     'underscore',
     'isobuild:compiler-plugin@1.0.0',
     'webapp']);
-  api.addFiles('swagger.js', 'server');
-  api.export(['Swagger']);
+  api.addFiles('swagger-server.js', 'server');
+  api.addFiles('swagger-client.js', 'server');
+  api.export(['SwaggerServer', 'SwaggerClient']);
 });
 
 Package.onTest(function(api) {
