@@ -161,7 +161,7 @@ exports.SwaggerServer = {
                 catch (error) {
                     try {
                         var error_1 = new swagger_error_1.SwaggerError(500, "0", "Fatal Error: unexpected error");
-                        exports.SwaggerServer.errorHandler ? Swagger.errorHandler(error_1, req, res, next) : defaultErrorHandler(error_1, req, res, next);
+                        exports.SwaggerServer.errorHandler ? exports.SwaggerServer.errorHandler(error_1, req, res, next) : defaultErrorHandler(error_1, req, res, next);
                     }
                     catch (e) {
                         var error_2 = new swagger_error_1.SwaggerError(500, "0", "Fatal Error: handling error failed");
@@ -203,7 +203,7 @@ exports.SwaggerServer = {
                     controllers: controllers,
                     useStubs: _this.stubs
                 }));
-                if (Swagger.errorHandler) {
+                if (exports.SwaggerServer.errorHandler) {
                     WebApp.connectHandlers.use(function (err, req, res, next) {
                         return exports.SwaggerServer.errorHandler(err, req, res, next);
                     });
