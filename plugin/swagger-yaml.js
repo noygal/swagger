@@ -73,7 +73,7 @@ class SwaggerCompiler extends CachingCompiler {
   }
 
   compileOneFile(inputFile) {
-    return this.handleOneSwaggerFile(inputFile);
+    return this._handleOneSwaggerFile(inputFile);
   }
 
   _generateAllTypings(path) {
@@ -103,10 +103,10 @@ class SwaggerCompiler extends CachingCompiler {
         let apiType = this.config.api[cleanFilename];
 
         if (apiType === "client") {
-          content = this.handleClient(file);
+          content = this._handleClient(file);
         }
         else if (apiType === "server") {
-          content = this.handleServer(file);
+          content = this._handleServer(file);
         }
       }
     }
