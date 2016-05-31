@@ -1,4 +1,6 @@
 "use strict";
+var underscore_1 = require('meteor/underscore');
+var swagger_error_1 = require('./swagger-error');
 var swaggerTools = Npm.require('swagger-tools');
 var url = Npm.require('url');
 function writeJsonToBody(res, json) {
@@ -7,11 +9,11 @@ function writeJsonToBody(res, json) {
         var spacer = shouldPrettyPrint ? 2 : null;
         var contentType = 'application/json';
         var content = json;
-        if (!_.isObject(json) && _.isString(json) && (json.indexOf("<?xml") > -1 || json.indexOf("<?XML") > -1)) {
+        if (!underscore_1.default.isObject(json) && underscore_1.default.isString(json) && (json.indexOf("<?xml") > -1 || json.indexOf("<?XML") > -1)) {
             content = json;
             contentType = "text/xml";
         }
-        else if (_.isObject(json)) {
+        else if (underscore_1.default.isObject(json)) {
             content = JSON.stringify(json, null, spacer);
         }
         res.setHeader('Content-type', contentType);
@@ -21,7 +23,7 @@ function writeJsonToBody(res, json) {
 function defaultErrorHandler(err, req, res, next) {
     if (!err)
         next();
-    if (err instanceof SwaggerError) {
+    if (err instanceof swagger_error_1.SwaggerError) {
         res.statusCode = err.httpCode;
         writeJsonToBody(res, err);
         res.end();
@@ -32,7 +34,7 @@ function defaultErrorHandler(err, req, res, next) {
         res.end();
     }
     else {
-        Swagger.logger.warn("Unkown error object", err);
+        exports.SwaggerServer.logger.warn("Unkown error object", err);
         res.statusCode = 500;
         writeJsonToBody(res, { code: 500, error: "Unknown error" });
         res.end();
@@ -75,32 +77,32 @@ exports.SwaggerServer = {
     Controller: function (name) {
         return function (target) {
             target.controllerName = name;
-            Swagger.registeredControllers.get(target).forEach(function (operation) {
-                Swagger.registerHandler(target, operation.operationId, undefined, operation.cb, operation.transformers, operation.namedParameters);
+            exports.SwaggerServer.registeredControllers.get(target).forEach(function (operation) {
+                exports.SwaggerServer.registerHandler(target, operation.operationId, undefined, operation.cb, operation.transformers, operation.namedParameters);
             });
         };
     },
     Operation: function (operationId) {
         return function (target, name) {
-            var controllerOperations = Swagger.registeredControllers.get(target.constructor);
+            var controllerOperations = exports.SwaggerServer.registeredControllers.get(target.constructor);
             if (!controllerOperations) {
                 controllerOperations = [];
-                Swagger.registeredControllers.set(target.constructor, controllerOperations);
+                exports.SwaggerServer.registeredControllers.set(target.constructor, controllerOperations);
             }
             controllerOperations.push({
                 operationId: operationId,
                 cb: target[name],
-                namedParameters: Swagger.registeredParamters.get(target.constructor.name + ':' + name),
-                transformers: Swagger.registeredOperations.get(target.constructor.name + ':' + name)
+                namedParameters: exports.SwaggerServer.registeredParamters.get(target.constructor.name + ':' + name),
+                transformers: exports.SwaggerServer.registeredOperations.get(target.constructor.name + ':' + name)
             });
         };
     },
     Parameter: function (parameterName) {
         return function (target, name, argIndex) {
-            var parameters = Swagger.registeredParamters.get(target.constructor.name + ':' + name);
+            var parameters = exports.SwaggerServer.registeredParamters.get(target.constructor.name + ':' + name);
             if (!parameters) {
                 parameters = [];
-                Swagger.registeredParamters.set(target.constructor.name + ':' + name, parameters);
+                exports.SwaggerServer.registeredParamters.set(target.constructor.name + ':' + name, parameters);
             }
             parameters.push({
                 parameterName: parameterName,
@@ -114,10 +116,10 @@ exports.SwaggerServer = {
             transformers[_i - 0] = arguments[_i];
         }
         return function (target, name, argIndex) {
-            var operationTransformers = Swagger.registeredOperations.get(target.constructor.name + ':' + name);
+            var operationTransformers = exports.SwaggerServer.registeredOperations.get(target.constructor.name + ':' + name);
             if (!operationTransformers) {
                 operationTransformers = [];
-                Swagger.registeredOperations.set(target.constructor.name + ':' + name, operationTransformers);
+                exports.SwaggerServer.registeredOperations.set(target.constructor.name + ':' + name, operationTransformers);
             }
             operationTransformers.push({
                 transformers: transformers,
@@ -152,7 +154,7 @@ exports.SwaggerServer = {
         var controllers = {};
         this.handlers.forEach(function (_a) {
             var controller = _a.controller, operationId = _a.operationId, context = _a.context, cb = _a.cb, transformers = _a.transformers, namedParameters = _a.namedParameters;
-            context = context || Swagger.instances.get(controller);
+            context = context || exports.SwaggerServer.instances.get(controller);
             if (!context) {
                 delete controllers[(controller.controllerName + "_" + operationId)];
                 return;
@@ -165,13 +167,13 @@ exports.SwaggerServer = {
                         namedParameters.forEach(function (parameter) {
                             args[parameter.argIndex] = (req.swagger.params[parameter.parameterName] || {}).originalValue;
                         });
-                        if (Swagger.debug) {
-                            Swagger.logger.log('debug', "#### Running handler for " + controller.controllerName + "#" + operationId + " with params:");
+                        if (exports.SwaggerServer.debug) {
+                            exports.SwaggerServer.logger.log('debug', "#### Running handler for " + controller.controllerName + "#" + operationId + " with params:");
                             for (var _i = 0, _a = Object.keys(req.swagger.params); _i < _a.length; _i++) {
                                 var key = _a[_i];
-                                Swagger.logger.log('debug', key + "=", req.swagger.params[key].value);
+                                exports.SwaggerServer.logger.log('debug', key + "=", req.swagger.params[key].value);
                             }
-                            Swagger.logger.log('debug', "End params for " + controller.controllerName + "_" + operationId + " ####");
+                            exports.SwaggerServer.logger.log('debug', "End params for " + controller.controllerName + "_" + operationId + " ####");
                         }
                         return cb.apply(context, args);
                     })
@@ -180,16 +182,16 @@ exports.SwaggerServer = {
                         res.end();
                     })
                         .catch(function (error) {
-                        Swagger.errorHandler ? Swagger.errorHandler(error, req, res, next) : defaultErrorHandler(error, req, res, next);
+                        exports.SwaggerServer.errorHandler ? exports.SwaggerServer.errorHandler(error, req, res, next) : defaultErrorHandler(error, req, res, next);
                     });
                 }
                 catch (error) {
                     try {
-                        var error_1 = new SwaggerError(500, "0", "Fatal Error: unexpected error");
-                        Swagger.errorHandler ? Swagger.errorHandler(error_1, req, res, next) : defaultErrorHandler(error_1, req, res, next);
+                        var error_1 = new swagger_error_1.SwaggerError(500, "0", "Fatal Error: unexpected error");
+                        exports.SwaggerServer.errorHandler ? Swagger.errorHandler(error_1, req, res, next) : defaultErrorHandler(error_1, req, res, next);
                     }
                     catch (e) {
-                        var error_2 = new SwaggerError(500, "0", "Fatal Error: handling error failed");
+                        var error_2 = new swagger_error_1.SwaggerError(500, "0", "Fatal Error: handling error failed");
                         defaultErrorHandler(error_2, req, res, next);
                     }
                 }
@@ -213,12 +215,12 @@ exports.SwaggerServer = {
         }
         this.definitions.forEach(function (definition, identifier) {
             swaggerTools.initializeMiddleware(definition, function (middleware) {
-                Swagger.externalConnectMiddlewares.forEach(function (middlewareFn) {
+                exports.SwaggerServer.externalConnectMiddlewares.forEach(function (middlewareFn) {
                     WebApp.connectHandlers.use(middlewareFn);
                 });
-                if (Swagger.cors) {
+                if (exports.SwaggerServer.cors) {
                     WebApp.connectHandlers.use(function (err, req, res, next) {
-                        res.setHeader('Access-Control-Allow-Origin', Swagger.cors);
+                        res.setHeader('Access-Control-Allow-Origin', exports.SwaggerServer.cors);
                         next();
                     });
                 }
@@ -230,7 +232,7 @@ exports.SwaggerServer = {
                 }));
                 if (Swagger.errorHandler) {
                     WebApp.connectHandlers.use(function (err, req, res, next) {
-                        return Swagger.errorHandler(err, req, res, next);
+                        return exports.SwaggerServer.errorHandler(err, req, res, next);
                     });
                 }
                 if (inDevelopment() || _this._allowDocs) {
@@ -249,14 +251,14 @@ exports.SwaggerServer = {
 function getArgsFromParams(transformers, params) {
     var promises = [];
     var index = 0;
-    _.forEach(params, function (param) {
-        var transformersList = _.findWhere(transformers, { argIndex: index });
+    underscore_1.default.forEach(params, function (param) {
+        var transformersList = underscore_1.default.findWhere(transformers, { argIndex: index });
         if (transformersList) {
             function handleTransformer(transformersContainer, tIndex, isRequired) {
                 var transformers = transformersContainer.transformers;
                 var transformer = (transformers || [])[tIndex];
                 if (transformer) {
-                    var transformerInstance = Swagger.instances.get(transformer);
+                    var transformerInstance = exports.SwaggerServer.instances.get(transformer);
                     var returnValue = transformerInstance.transform.call(transformerInstance, param.value, param.schema.required);
                     return Promise.resolve(returnValue)
                         .then(function (result) {
