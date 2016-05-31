@@ -6,13 +6,13 @@ var __extends = (this && this.__extends) || function (d, b) {
 };
 var SwaggerError = (function (_super) {
     __extends(SwaggerError, _super);
-    function SwaggerError(httpCode, errorCode, errorMessage, details) {
+    function SwaggerError(httpCode, errorMessage, errorCode, details) {
         _super.call(this, errorMessage);
         this.httpCode = httpCode;
-        this.errorCode = errorCode;
         this.errorMessage = errorMessage;
-        this.stack = (new Error()).stack;
+        this.errorCode = errorCode;
         this.details = details;
+        this.stack = (new Error()).stack;
     }
     SwaggerError.prototype.toJSON = function () {
         return {

@@ -1,5 +1,6 @@
-import _ from 'meteor/underscore'
 let swaggerClient = Npm.require('swagger-client');
+declare var _;
+const {forEach} = _;
 
 export interface SwaggerResponse<R> {
   obj: R;
@@ -48,10 +49,10 @@ export class SwaggerClient<T extends SwaggerClientApi> {
       this._api = <T> new swaggerClient({
         spec: swaggerDefinition,
         success: () => {
-          _.forEach(this._api.apisArray, (currentApi) => {
+          forEach(this._api.apisArray, (currentApi) => {
             let controller = this._api[currentApi.name];
 
-            _.forEach(controller.apis, (operationMetadata, operationKey) => {
+            forEach(controller.apis, (operationMetadata, operationKey) => {
               let operation = controller[operationKey];
 
               controller[operationKey] = function (...args) {

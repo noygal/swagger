@@ -1,45 +1,8 @@
 "use strict";
-var underscore_1 = require('meteor/underscore');
 var swagger_error_1 = require('./swagger-error');
+var forEach = _.forEach, findWhere = _.findWhere, isObject = _.isObject, isString = _.isString;
 var swaggerTools = Npm.require('swagger-tools');
 var url = Npm.require('url');
-function writeJsonToBody(res, json) {
-    if (json !== undefined) {
-        var shouldPrettyPrint = (process.env.NODE_ENV === 'development');
-        var spacer = shouldPrettyPrint ? 2 : null;
-        var contentType = 'application/json';
-        var content = json;
-        if (!underscore_1.default.isObject(json) && underscore_1.default.isString(json) && (json.indexOf("<?xml") > -1 || json.indexOf("<?XML") > -1)) {
-            content = json;
-            contentType = "text/xml";
-        }
-        else if (underscore_1.default.isObject(json)) {
-            content = JSON.stringify(json, null, spacer);
-        }
-        res.setHeader('Content-type', contentType);
-        res.write(content);
-    }
-}
-function defaultErrorHandler(err, req, res, next) {
-    if (!err)
-        next();
-    if (err instanceof swagger_error_1.SwaggerError) {
-        res.statusCode = err.httpCode;
-        writeJsonToBody(res, err);
-        res.end();
-    }
-    else if (typeof err === "string") {
-        res.statusCode = 500;
-        writeJsonToBody(res, { errorCode: 0, errorMessage: err });
-        res.end();
-    }
-    else {
-        exports.SwaggerServer.logger.warn("Unkown error object", err);
-        res.statusCode = 500;
-        writeJsonToBody(res, { code: 500, error: "Unknown error" });
-        res.end();
-    }
-}
 function inDevelopment() {
     return process.env.NODE_ENV === "development";
 }
@@ -69,10 +32,20 @@ exports.SwaggerServer = {
     allowCors: function (origin) {
         this.cors = origin;
     },
-    loadServerDefinition: function (identifier, definition) {
+    loadServerDefinition: function (identifier, swaggerDefinition) {
+        if (!swaggerDefinition) {
+            var SwaggerConfig = global.SwaggerConfig;
+            if (!SwaggerConfig) {
+                throw "Cannot load SwaggerServer for " + identifier + " because no SwaggerConfig global was found.";
+            }
+            else if (!SwaggerConfig[identifier]) {
+                throw "Cannot load SwaggerServer for " + identifier + " because no swagger-definition was provided and";
+            }
+            swaggerDefinition = SwaggerConfig[identifier];
+        }
         var parsedUrl = url.parse(Meteor.absoluteUrl());
-        definition.host = "" + parsedUrl.host;
-        this.definitions.set(identifier, definition);
+        swaggerDefinition.host = "" + parsedUrl.host;
+        this.definitions.set(identifier, swaggerDefinition);
     },
     Controller: function (name) {
         return function (target) {
@@ -251,8 +224,8 @@ exports.SwaggerServer = {
 function getArgsFromParams(transformers, params) {
     var promises = [];
     var index = 0;
-    underscore_1.default.forEach(params, function (param) {
-        var transformersList = underscore_1.default.findWhere(transformers, { argIndex: index });
+    forEach(params, function (param) {
+        var transformersList = findWhere(transformers, { argIndex: index });
         if (transformersList) {
             function handleTransformer(transformersContainer, tIndex, isRequired) {
                 var transformers = transformersContainer.transformers;
@@ -284,3 +257,54 @@ function getArgsFromParams(transformers, params) {
     });
     return Promise.all(promises);
 }
+function writeJsonToBody(res, json) {
+    if (json !== undefined) {
+        var shouldPrettyPrint = (process.env.NODE_ENV === 'development');
+        var spacer = shouldPrettyPrint ? 2 : null;
+        var contentType = 'application/json';
+        var content = json;
+        if (!isObject(json) && isString(json) && (json.indexOf("<?xml") > -1 || json.indexOf("<?XML") > -1)) {
+            content = json;
+            contentType = "text/xml";
+        }
+        else if (isObject(json)) {
+            content = JSON.stringify(json, null, spacer);
+        }
+        res.setHeader('Content-type', contentType);
+        res.write(content);
+    }
+}
+exports.writeJsonToBody = writeJsonToBody;
+function defaultErrorHandler(err, req, res, next) {
+    if (!err)
+        next();
+    var swaggerError;
+    if (err instanceof swagger_error_1.SwaggerError) {
+        swaggerError = err;
+    }
+    else if (typeof err === "string") {
+        swaggerError = new swagger_error_1.SwaggerError(500, err, "0");
+    }
+    else {
+        try {
+            if (err.toString().indexOf("Cannot resolve the configured swagger-router") != -1) {
+                exports.SwaggerServer.logger.warn('Tried to access non-exists or disabled endpoint!', err);
+                swaggerError = new swagger_error_1.SwaggerError(404, "Tried to access non-exists or disabled endpoint", "0");
+            }
+            else if (err.failedValidation && err.results && err.results.errors) {
+                swaggerError = new swagger_error_1.SwaggerError(err.httpCode || 400, 'Failed validation', "0", {
+                    errors: err.results.errors
+                });
+            }
+        }
+        catch (e) {
+        }
+    }
+    if (!swaggerError) {
+        swaggerError = new swagger_error_1.SwaggerError(500, 'Unexpected error', "0");
+    }
+    res.statusCode = swaggerError.httpCode;
+    writeJsonToBody(res, swaggerError);
+    res.end();
+}
+exports.defaultErrorHandler = defaultErrorHandler;

@@ -4,7 +4,7 @@ export declare class SwaggerError extends Error {
     errorMessage: string;
     stack: any;
     details: any;
-    constructor(httpCode: any, errorCode: any, errorMessage: any, details: any);
+    constructor(httpCode: any, errorMessage: any, errorCode: any, details?: any);
     toJSON(): {
         errorCode: string;
         errorMessage: string;

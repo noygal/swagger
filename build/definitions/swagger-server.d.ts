@@ -16,7 +16,7 @@ export declare const SwaggerServer: {
     setErrorHandler(errHandler: any): void;
     setLogger(logger: any): void;
     allowCors(origin: any): void;
-    loadServerDefinition(identifier: any, definition: any): void;
+    loadServerDefinition(identifier: any, swaggerDefinition?: any): void;
     Controller(name: any): (target: any) => void;
     Operation(operationId: any): (target: any, name: any) => void;
     Parameter(parameterName: any): (target: any, name: any, argIndex: any) => void;
@@ -29,3 +29,5 @@ export declare const SwaggerServer: {
     start(): void;
     allowDocs(): void;
 };
+export declare function writeJsonToBody(res: any, json: any): void;
+export declare function defaultErrorHandler(err: any, req: any, res: any, next: any): void;

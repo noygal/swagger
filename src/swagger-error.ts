@@ -5,13 +5,13 @@ export class SwaggerError extends Error {
   public stack: any;
   public details: any;
 
-  constructor(httpCode, errorCode, errorMessage, details) {
+  constructor(httpCode, errorMessage, errorCode, details?) {
     super(errorMessage);
     this.httpCode = httpCode;
-    this.errorCode = errorCode;
     this.errorMessage = errorMessage;
-    this.stack = (new Error()).stack;
+    this.errorCode = errorCode;
     this.details = details;
+    this.stack = (new Error()).stack;
   }
   toJSON() {
     return {

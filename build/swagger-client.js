@@ -1,6 +1,6 @@
 "use strict";
-var underscore_1 = require('meteor/underscore');
 var swaggerClient = Npm.require('swagger-client');
+var forEach = _.forEach;
 var SwaggerClient = (function () {
     function SwaggerClient(name, options, swaggerDefinition) {
         var _this = this;
@@ -21,9 +21,9 @@ var SwaggerClient = (function () {
             _this._api = new swaggerClient({
                 spec: swaggerDefinition,
                 success: function () {
-                    underscore_1.default.forEach(_this._api.apisArray, function (currentApi) {
+                    forEach(_this._api.apisArray, function (currentApi) {
                         var controller = _this._api[currentApi.name];
-                        underscore_1.default.forEach(controller.apis, function (operationMetadata, operationKey) {
+                        forEach(controller.apis, function (operationMetadata, operationKey) {
                             var operation = controller[operationKey];
                             controller[operationKey] = function () {
                                 var _this = this;
