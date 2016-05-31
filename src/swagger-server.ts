@@ -1,3 +1,5 @@
+import _ from 'meteor/underscore'
+import {SwaggerError} from './swagger-error'
 let swaggerTools = Npm.require('swagger-tools');
 let url = Npm.require('url');
 
@@ -33,7 +35,7 @@ function defaultErrorHandler(err, req, res, next) {
     writeJsonToBody(res, {errorCode: 0, errorMessage: err});
     res.end();
   } else {
-    Swagger.logger.warn("Unkown error object", err);
+    SwaggerServer.logger.warn("Unkown error object", err);
     res.statusCode = 500;
     writeJsonToBody(res, {code: 500, error: "Unknown error"});
     res.end();
@@ -84,36 +86,36 @@ export const SwaggerServer = {
   Controller (name) {
     return function (target) {
       target.controllerName = name;
-      Swagger.registeredControllers.get(target).forEach((operation) => {
-        Swagger.registerHandler(target, operation.operationId, undefined, operation.cb, operation.transformers, operation.namedParameters);
+      SwaggerServer.registeredControllers.get(target).forEach((operation) => {
+        SwaggerServer.registerHandler(target, operation.operationId, undefined, operation.cb, operation.transformers, operation.namedParameters);
       });
     }
   },
 
   Operation (operationId) {
     return function (target, name) {
-      let controllerOperations = Swagger.registeredControllers.get(target.constructor);
+      let controllerOperations = SwaggerServer.registeredControllers.get(target.constructor);
       if (!controllerOperations) {
         controllerOperations = [];
-        Swagger.registeredControllers.set(target.constructor, controllerOperations);
+        SwaggerServer.registeredControllers.set(target.constructor, controllerOperations);
       }
 
       controllerOperations.push({
         operationId,
         cb: target[name],
-        namedParameters: Swagger.registeredParamters.get(target.constructor.name + ':' + name),
-        transformers: Swagger.registeredOperations.get(target.constructor.name + ':' + name)
+        namedParameters: SwaggerServer.registeredParamters.get(target.constructor.name + ':' + name),
+        transformers: SwaggerServer.registeredOperations.get(target.constructor.name + ':' + name)
       });
     }
   },
 
   Parameter (parameterName) {
     return function (target, name, argIndex) {
-      let parameters = Swagger.registeredParamters.get(target.constructor.name + ':' + name);
+      let parameters = SwaggerServer.registeredParamters.get(target.constructor.name + ':' + name);
 
       if (!parameters) {
         parameters = [];
-        Swagger.registeredParamters.set(target.constructor.name + ':' + name, parameters);
+        SwaggerServer.registeredParamters.set(target.constructor.name + ':' + name, parameters);
       }
 
       parameters.push({
@@ -125,10 +127,10 @@ export const SwaggerServer = {
 
   Transform (...transformers) {
     return function (target, name, argIndex) {
-      let operationTransformers = Swagger.registeredOperations.get(target.constructor.name + ':' + name);
+      let operationTransformers = SwaggerServer.registeredOperations.get(target.constructor.name + ':' + name);
       if (!operationTransformers) {
         operationTransformers = [];
-        Swagger.registeredOperations.set(target.constructor.name + ':' + name, operationTransformers);
+        SwaggerServer.registeredOperations.set(target.constructor.name + ':' + name, operationTransformers);
       }
 
       operationTransformers.push({
@@ -169,7 +171,7 @@ export const SwaggerServer = {
     let controllers = {};
 
     this.handlers.forEach(({controller, operationId, context, cb, transformers, namedParameters}) => {
-      context = context || Swagger.instances.get(controller);
+      context = context || SwaggerServer.instances.get(controller);
 
       if (!context) {
         delete controllers[`${controller.controllerName}_${operationId}`];
@@ -186,12 +188,12 @@ export const SwaggerServer = {
                 args[parameter.argIndex] = (req.swagger.params[parameter.parameterName] || {}).originalValue;
               });
 
-              if(Swagger.debug) {
-                Swagger.logger.log('debug', `#### Running handler for ${controller.controllerName}#${operationId} with params:`)
+              if(SwaggerServer.debug) {
+                SwaggerServer.logger.log('debug', `#### Running handler for ${controller.controllerName}#${operationId} with params:`)
                 for (var key of Object.keys(req.swagger.params)) {
-                  Swagger.logger.log('debug', `${key}=`,req.swagger.params[key].value)
+                  SwaggerServer.logger.log('debug', `${key}=`,req.swagger.params[key].value)
                 }
-                Swagger.logger.log('debug', `End params for ${controller.controllerName}_${operationId} ####`)
+                SwaggerServer.logger.log('debug', `End params for ${controller.controllerName}_${operationId} ####`)
               }
 
               return cb.apply(context, args);
@@ -201,13 +203,13 @@ export const SwaggerServer = {
               res.end();
             })
             .catch((error) => {
-              Swagger.errorHandler ? Swagger.errorHandler(error, req, res, next) : defaultErrorHandler(error, req, res, next);
+              SwaggerServer.errorHandler ? SwaggerServer.errorHandler(error, req, res, next) : defaultErrorHandler(error, req, res, next);
             });
         }
         catch (error) {
           try {
             let error = new SwaggerError(500, "0", "Fatal Error: unexpected error");
-            Swagger.errorHandler ? Swagger.errorHandler(error, req, res, next) : defaultErrorHandler(error, req, res, next);
+            SwaggerServer.errorHandler ? Swagger.errorHandler(error, req, res, next) : defaultErrorHandler(error, req, res, next);
           } catch (e) {
             let error = new SwaggerError(500, "0", "Fatal Error: handling error failed");
             defaultErrorHandler(error, req, res, next);
@@ -239,13 +241,13 @@ export const SwaggerServer = {
 
     this.definitions.forEach((definition, identifier) => {
       swaggerTools.initializeMiddleware(definition, (middleware) => {
-        Swagger.externalConnectMiddlewares.forEach((middlewareFn) => {
+        SwaggerServer.externalConnectMiddlewares.forEach((middlewareFn) => {
           WebApp.connectHandlers.use(middlewareFn);
         });
 
-        if (Swagger.cors) {
+        if (SwaggerServer.cors) {
           WebApp.connectHandlers.use((err, req, res, next) => {
-            res.setHeader('Access-Control-Allow-Origin', Swagger.cors);
+            res.setHeader('Access-Control-Allow-Origin', SwaggerServer.cors);
 
             next();
           });
@@ -260,7 +262,7 @@ export const SwaggerServer = {
 
         if (Swagger.errorHandler) {
           WebApp.connectHandlers.use((err, req, res, next) => {
-            return Swagger.errorHandler(err, req, res, next);
+            return SwaggerServer.errorHandler(err, req, res, next);
           });
         }
 
@@ -292,7 +294,7 @@ function getArgsFromParams(transformers, params) {
         let transformer = (transformers || [])[tIndex];
 
         if (transformer) {
-          let transformerInstance = Swagger.instances.get(transformer);
+          let transformerInstance = SwaggerServer.instances.get(transformer);
           let returnValue = transformerInstance.transform.call(transformerInstance, param.value, param.schema.required);
 
           return Promise.resolve(returnValue)
