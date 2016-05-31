@@ -178,7 +178,7 @@ class SwaggerCompiler extends CachingCompiler {
     let swaggerDoc = JSON.stringify(safeLoad(file.getContentsAsString()));
     log(`SwaggerConfig: added client definition for "${apiIdentifier}"`);
 
-    return `SwaggerConfig = SwaggerConfig || {}; SwaggerConfig['${apiIdentifier}'] = {type: 'client', definition: ${swaggerDoc}};`;
+    return `SwaggerConfig = global.SwaggerConfig || {}; SwaggerConfig['${apiIdentifier}'] = {type: 'client', definition: ${swaggerDoc}};`;
   }
 
   _handleServer(file) {
@@ -186,7 +186,7 @@ class SwaggerCompiler extends CachingCompiler {
     let swaggerDoc = JSON.stringify(safeLoad(file.getContentsAsString()));
     log(`SwaggerConfig: added server definition for "${apiIdentifier}"`);
 
-    return `SwaggerConfig = SwaggerConfig || {}; SwaggerConfig['${apiIdentifier}'] = {type: 'server', definition: ${swaggerDoc}};`;
+    return `SwaggerConfig = global.SwaggerConfig || {}; SwaggerConfig['${apiIdentifier}'] = {type: 'server', definition: ${swaggerDoc}};`;
   }
 
   _apiIdentifierName(filePath) {
