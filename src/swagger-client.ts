@@ -1,6 +1,10 @@
 import _ from 'meteor/underscore'
 let swaggerClient = Npm.require('swagger-client');
 
+export interface SwaggerResponse<R> {
+  obj: R;
+}
+
 export interface SwaggerClientApi {
   apis: any;
   apisArray: any;
