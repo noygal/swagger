@@ -2,9 +2,20 @@
 var underscore_1 = require('meteor/underscore');
 var swaggerClient = Npm.require('swagger-client');
 var SwaggerClient = (function () {
-    function SwaggerClient(name, swaggerDefinition, options) {
+    function SwaggerClient(name, options, swaggerDefinition) {
         var _this = this;
         if (options === void 0) { options = { debug: false, logger: console }; }
+        if (swaggerDefinition === void 0) { swaggerDefinition = null; }
+        if (!swaggerDefinition) {
+            var SwaggerConfig = global.SwaggerConfig;
+            if (!SwaggerConfig) {
+                throw "Cannot initialize SwaggerClient for " + name + " because no SwaggerConfig global was found.";
+            }
+            else if (!SwaggerConfig[name]) {
+                throw "Cannot initialize SwaggerClient for " + name + " because no swagger-definition was provided and";
+            }
+            swaggerDefinition = SwaggerConfig[name];
+        }
         this.name = name;
         this.promise = new Promise(function (resolve) {
             _this._api = new swaggerClient({

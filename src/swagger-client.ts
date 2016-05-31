@@ -31,7 +31,18 @@ export class SwaggerClient<T extends SwaggerClientApi> {
   private promise: Promise<T>;
   private _api: T;
   
-  constructor(name, swaggerDefinition, options = {debug: false, logger: console}) {
+  constructor(name, options = {debug: false, logger: console}, swaggerDefinition = null) {
+    if(!swaggerDefinition) {
+      let SwaggerConfig = global.SwaggerConfig;
+      if(!SwaggerConfig) {
+        throw `Cannot initialize SwaggerClient for ${name} because no SwaggerConfig global was found.`
+      } else if (!SwaggerConfig[name]) {
+        throw `Cannot initialize SwaggerClient for ${name} because no swagger-definition was provided and`
+      }
+
+      swaggerDefinition = SwaggerConfig[name];
+    }
+
     this.name = name;
     this.promise = new Promise((resolve) => {
       this._api = <T> new swaggerClient({

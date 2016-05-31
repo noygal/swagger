@@ -24,10 +24,10 @@ export declare class SwaggerClient<T extends SwaggerClientApi> {
     private name;
     private promise;
     private _api;
-    constructor(name: any, swaggerDefinition: any, options?: {
+    constructor(name: any, options?: {
         debug: boolean;
         logger: Console;
-    });
+    }, swaggerDefinition?: any);
     ready(): Promise<T>;
     api(): T;
 }
