@@ -327,6 +327,10 @@ export function defaultErrorHandler(err, req, res, next) {
     swaggerError = err;
   } else if (typeof err === "string") {
     swaggerError = new SwaggerError(500, err, "0");
+  } else if (err instanceof Error && err.code) {
+    swaggerError = new SwaggerError(400, err.message, err.code, {
+      errors: err.results.errors
+    });
   } else if (err instanceof Error) {
     swaggerError = new SwaggerError(err.httpCode || 500, err.message, "0");
   } else {
