@@ -352,6 +352,8 @@ export function defaultErrorHandler(err, req, res, next) {
     swaggerError = new SwaggerError(500, 'Unexpected error', "0");
   }
 
+  SwaggerServer.logger.error(`Error: ${swaggerError.message}`);
+
   res.statusCode = swaggerError.httpCode;
   writeJsonToBody(res, swaggerError);
   res.end();
