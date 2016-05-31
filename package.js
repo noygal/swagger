@@ -38,6 +38,8 @@ Package.onUse(function(api) {
     'webapp']);
   api.addFiles('build/swagger-server.js', 'server');
   api.addFiles('build/swagger-client.js', 'server');
+  api.addFiles('build/swagger-error.js', 'server');
+  api.mainModule("build/index.js");
   api.export(['SwaggerServer', 'SwaggerClient', 'SwaggerError']);
 });
 
