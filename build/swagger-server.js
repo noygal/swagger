@@ -36,12 +36,12 @@ exports.SwaggerServer = {
         if (!swaggerDefinition) {
             var SwaggerConfig = global.SwaggerConfig;
             if (!SwaggerConfig) {
-                throw "Cannot load SwaggerServer for " + identifier + " because no SwaggerConfig global was found.";
+                throw "Cannot load SwaggerServer for \"" + identifier + "\" because no SwaggerConfig global was found.";
             }
-            else if (!SwaggerConfig[identifier]) {
-                throw "Cannot load SwaggerServer for " + identifier + " because no swagger-definition was provided and";
+            else if (!SwaggerConfig[identifier] || !SwaggerConfig[identifier].definition) {
+                throw "Cannot load SwaggerServer for \"" + identifier + "\" because no swagger-definition was provided";
             }
-            swaggerDefinition = SwaggerConfig[identifier];
+            swaggerDefinition = SwaggerConfig[identifier].definition;
         }
         var parsedUrl = url.parse(Meteor.absoluteUrl());
         swaggerDefinition.host = "" + parsedUrl.host;

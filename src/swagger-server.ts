@@ -45,12 +45,12 @@ export const SwaggerServer = {
     if(!swaggerDefinition) {
       let SwaggerConfig = global.SwaggerConfig;
       if(!SwaggerConfig) {
-        throw `Cannot load SwaggerServer for ${identifier} because no SwaggerConfig global was found.`
-      } else if (!SwaggerConfig[identifier]) {
-        throw `Cannot load SwaggerServer for ${identifier} because no swagger-definition was provided and`
+        throw `Cannot load SwaggerServer for "${identifier}" because no SwaggerConfig global was found.`
+      } else if (!SwaggerConfig[identifier] || !SwaggerConfig[identifier].definition) {
+        throw `Cannot load SwaggerServer for "${identifier}" because no swagger-definition was provided`
       }
 
-      swaggerDefinition = SwaggerConfig[identifier];
+      swaggerDefinition = SwaggerConfig[identifier].definition;
     }
     let parsedUrl = url.parse(Meteor.absoluteUrl());
     swaggerDefinition.host = `${parsedUrl.host}`;

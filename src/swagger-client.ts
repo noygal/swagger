@@ -36,9 +36,9 @@ export class SwaggerClient<T extends SwaggerClientApi> {
     if(!swaggerDefinition) {
       let SwaggerConfig = global.SwaggerConfig;
       if(!SwaggerConfig) {
-        throw `Cannot initialize SwaggerClient for ${name} because no SwaggerConfig global was found.`
+        throw `Cannot initialize SwaggerClient for "${name}" because no SwaggerConfig global was found.`
       } else if (!SwaggerConfig[name]) {
-        throw `Cannot initialize SwaggerClient for ${name} because no swagger-definition was provided and`
+        throw `Cannot initialize SwaggerClient for "${name}" because no swagger-definition was provided and`
       }
 
       swaggerDefinition = SwaggerConfig[name];
