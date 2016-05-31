@@ -1,3 +1,6 @@
+export interface SwaggerResponse<R> {
+    obj: R;
+}
 export interface SwaggerClientApi {
     apis: any;
     apisArray: any;
