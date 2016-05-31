@@ -1,0 +1,9 @@
+{
+  "name": "guild-swagger",
+  "dependencies": {},
+  "globalDependencies": {
+    "es6-shim": "registry:dt/es6-shim#0.31.2+20160317120654",
+    "meteor": "registry:dt/meteor#1.3.0+20160514174853",
+    "node": "registry:dt/node#6.0.0+20160524002506"
+  }
+}

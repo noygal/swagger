@@ -44,7 +44,7 @@ function inDevelopment() {
   return process.env.NODE_ENV === "development";
 }
 
-SwaggerServer = {
+export const SwaggerServer = {
   debug: false,
   raw: false,
   cors: false,
@@ -323,20 +323,3 @@ function getArgsFromParams(transformers, params) {
   return Promise.all(promises);
 }
 
-class SwaggerError extends Error {
-  constructor(httpCode, errorCode, errorMessage, details) {
-    super(errorMessage);
-    this.httpCode = httpCode;
-    this.errorCode = errorCode;
-    this.errorMessage = errorMessage;
-    this.stack = (new Error()).stack;
-    this.details = details;
-  }
-  toJSON() {
-    return {
-      errorCode: this.errorCode,
-      errorMessage: this.errorMessage,
-      details: this.details
-    }
-  }
-}

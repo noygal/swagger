@@ -1,14 +1,40 @@
+import _ from 'meteor/underscore'
 let swaggerClient = Npm.require('swagger-client');
 
-class SwaggerClient {
+export interface SwaggerClientApi {
+  apis: any;
+  apisArray: any;
+  basePath: any;
+  consumes: any;
+  host: any;
+  info: any;
+  produces: any;
+  schemes: any;
+  securityDefinitions: any;
+  security: any;
+  title: any;
+
+  setHost(host:string): void;
+  setSchemes(arr : Array<string>): void;
+  setBasePath(basePath: string) : void;
+  clientAuthorizations: {
+    add(securityDefinitionName : string, value : any) : void;
+  }
+}
+
+export class SwaggerClient<T extends SwaggerClientApi> {
+  private name: string;
+  private promise: Promise<T>;
+  private _api: T;
+  
   constructor(name, swaggerDefinition, options = {debug: false, logger: console}) {
     this.name = name;
     this.promise = new Promise((resolve) => {
-      this.api = new swaggerClient({
+      this._api = <T> new swaggerClient({
         spec: swaggerDefinition,
         success: () => {
-          _.forEach(api.apisArray, (currentApi) => {
-            let controller = api[currentApi.name];
+          _.forEach(this._api.apisArray, (currentApi) => {
+            let controller = this._api[currentApi.name];
 
             _.forEach(controller.apis, (operationMetadata, operationKey) => {
               let operation = controller[operationKey];
@@ -29,17 +55,17 @@ class SwaggerClient {
             })
           });
 
-          resolve(api);
+          resolve(this._api);
         }
       });
     });
   }
   
-  ready() {
+  ready(): Promise<T> {
     return this.promise;
   }
   
-  api() {
-    return this.api;
+  api(): T {
+    return this._api;
   }
 }

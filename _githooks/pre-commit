@@ -1,0 +1,5 @@
+#!/bin/sh
+
+rm -rf ./build
+gulp build
+git add build/.
