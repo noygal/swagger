@@ -255,6 +255,31 @@ export const SwaggerServer = {
   }
 };
 
+function handleTransformer(transformersContainer, tIndex, param) {
+  let transformers = transformersContainer.transformers;
+  let transformer = (transformers || [])[tIndex];
+
+  if (transformer) {
+    let transformerInstance = SwaggerServer.instances.get(transformer);
+    let returnValue = transformerInstance.transform.call(transformerInstance, param.value, param.schema.required);
+
+    return Promise.resolve(returnValue)
+      .then((result) => {
+        param.value = result;
+
+        if (transformers[tIndex + 1]) {
+          return handleTransformer(transformersContainer, tIndex + 1, param);
+        }
+        else {
+          return param.value;
+        }
+      });
+  }
+  else {
+    return Promise.resolve(param.value);
+  }
+}
+
 function getArgsFromParams(transformers, params) {
   let promises = [];
   let index = 0;
@@ -263,32 +288,7 @@ function getArgsFromParams(transformers, params) {
     let transformersList = findWhere(transformers, {argIndex: index});
 
     if (transformersList) {
-      function handleTransformer(transformersContainer, tIndex, isRequired) {
-        let transformers = transformersContainer.transformers;
-        let transformer = (transformers || [])[tIndex];
-
-        if (transformer) {
-          let transformerInstance = SwaggerServer.instances.get(transformer);
-          let returnValue = transformerInstance.transform.call(transformerInstance, param.value, param.schema.required);
-
-          return Promise.resolve(returnValue)
-            .then((result) => {
-              param.value = result;
-
-              if (transformers[tIndex + 1]) {
-                return handleTransformer(transformersContainer, tIndex + 1);
-              }
-              else {
-                return param.value;
-              }
-            });
-        }
-        else {
-          return Promise.resolve(param.value);
-        }
-      }
-
-      promises.push(handleTransformer(transformersList, 0));
+      promises.push(handleTransformer(transformersList, 0, param));
     }
     else {
       promises.push(Promise.resolve(param.value));
@@ -296,6 +296,7 @@ function getArgsFromParams(transformers, params) {
 
     index++;
   });
+
   return Promise.all(promises);
 }
 

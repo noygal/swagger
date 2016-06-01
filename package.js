@@ -1,6 +1,6 @@
 Package.describe({
   name: 'guild:swagger',
-  version: '0.1.0',
+  version: '0.1.1',
   // Brief, one-line summary of the package.
   summary: 'Rest API based on swagger',
   // URL to the Git repository containing the source code for this package.
@@ -18,7 +18,7 @@ Npm.depends({
 
 Package.registerBuildPlugin({
   name: 'swagger',
-  use: ['ecmascript', 'caching-compiler@1.0.3'],
+  use: ['ecmascript', 'caching-compiler@1.0.3', 'barbatus:typescript'],
   sources: [
     'plugin/swagger-yaml.js'
   ],
@@ -32,14 +32,15 @@ Package.registerBuildPlugin({
 Package.onUse(function(api) {
   api.versionsFrom('1.2.1');
   api.use([
+    'barbatus:typescript',
     'ecmascript',
     'underscore',
     'isobuild:compiler-plugin@1.0.0',
     'webapp']);
-  api.addFiles('build/swagger-server.js', 'server');
-  api.addFiles('build/swagger-client.js', 'server');
-  api.addFiles('build/swagger-error.js', 'server');
-  api.mainModule("build/index.js");
+  api.addFiles('src/swagger-server.ts', 'server');
+  api.addFiles('src/swagger-client.ts', 'server');
+  api.addFiles('src/swagger-error.ts', 'server');
+  api.mainModule("src/index.ts");
   api.export(['SwaggerServer', 'SwaggerClient', 'SwaggerError']);
 });
 
