@@ -1,57 +1,16 @@
+import {SwaggerError} from './swagger-error'
+declare var _;
+
+const {forEach, findWhere, isObject, isString} = _;
+
 let swaggerTools = Npm.require('swagger-tools');
-let swaggerClient = Npm.require('swagger-client');
 let url = Npm.require('url');
-
-function writeJsonToBody(res, json) {
-  if (json !== undefined) {
-    let shouldPrettyPrint = (process.env.NODE_ENV === 'development');
-    let spacer = shouldPrettyPrint ? 2 : null;
-    let contentType = 'application/json';
-    let content = json;
-
-    if (!_.isObject(json) && _.isString(json) && (json.indexOf("<?xml") > -1 || json.indexOf("<?XML") > -1)) {
-      content = json;
-      contentType = "text/xml";
-    }
-    else if(_.isObject(json)) {
-      content = JSON.stringify(json, null, spacer);
-    }
-
-    res.setHeader('Content-type', contentType);
-    res.write(content);
-  }
-}
-
-function isPromise(obj) {
-  return !!obj && (typeof obj === 'object' || typeof obj === 'function') && typeof obj.then === 'function';
-}
-
-function defaultErrorHandler(err, req, res, next) {
-  if(!err) next();
-
-  if (err instanceof Swagger.Error) {
-    res.statusCode = err.httpCode;
-    writeJsonToBody(res, err.error);
-    res.end();
-  } else if (typeof err === "string") {
-    res.statusCode = err.httpCode;
-    writeJsonToBody(res, {code: 0, message: err});
-    res.end();
-  }
-  else {
-    Swagger.logger.warn("Unkown error object", err);
-
-    res.statusCode = 500;
-    writeJsonToBody(res, {code: 500, error: "Unknown error"});
-    res.end();
-  }
-}
 
 function inDevelopment() {
   return process.env.NODE_ENV === "development";
 }
 
-Swagger = {
+export const SwaggerServer = {
   debug: false,
   raw: false,
   cors: false,
@@ -61,27 +20,11 @@ Swagger = {
   registeredParamters: new Map(),
   instances: new Map(),
   argumentsTransforms: new Map(),
-  clients: new Map(),
   definitions: new Map(),
   logger: console,
   errorHandler: undefined,
   externalConnectMiddlewares: [],
-
-  Error: class SwaggerError {
-    constructor(httpCode, error) {
-      this.httpCode = httpCode;
-
-      if (typeof error === 'string') {
-        error = {
-          code: httpCode,
-          message: error
-        }
-      }
-
-      this.error = error;
-    }
-  },
-
+  
   addConnectMiddleware(middlewareFn) {
     this.externalConnectMiddlewares.push(middlewareFn);
   },
@@ -98,45 +41,55 @@ Swagger = {
     this.cors = origin;
   },
 
-  loadSwaggerDefinition (identifier, definition) {
+  loadServerDefinition (identifier, swaggerDefinition?) {
+    if(!swaggerDefinition) {
+      let SwaggerConfig = global.SwaggerConfig;
+      if(!SwaggerConfig) {
+        throw `Cannot load SwaggerServer for "${identifier}" because no SwaggerConfig global was found.`
+      } else if (!SwaggerConfig[identifier] || !SwaggerConfig[identifier].definition) {
+        throw `Cannot load SwaggerServer for "${identifier}" because no swagger-definition was provided`
+      }
+
+      swaggerDefinition = SwaggerConfig[identifier].definition;
+    }
     let parsedUrl = url.parse(Meteor.absoluteUrl());
-    definition.host = `${parsedUrl.host}`;
-    this.definitions.set(identifier, definition);
+    swaggerDefinition.host = `${parsedUrl.host}`;
+    this.definitions.set(identifier, swaggerDefinition);
   },
 
   Controller (name) {
     return function (target) {
       target.controllerName = name;
-      Swagger.registeredControllers.get(target).forEach((operation) => {
-        Swagger.registerHandler(target, operation.operationId, undefined, operation.cb, operation.transformers, operation.namedParameters);
+      SwaggerServer.registeredControllers.get(target).forEach((operation) => {
+        SwaggerServer.registerHandler(target, operation.operationId, undefined, operation.cb, operation.transformers, operation.namedParameters);
       });
     }
   },
 
   Operation (operationId) {
     return function (target, name) {
-      let controllerOperations = Swagger.registeredControllers.get(target.constructor);
+      let controllerOperations = SwaggerServer.registeredControllers.get(target.constructor);
       if (!controllerOperations) {
         controllerOperations = [];
-        Swagger.registeredControllers.set(target.constructor, controllerOperations);
+        SwaggerServer.registeredControllers.set(target.constructor, controllerOperations);
       }
 
       controllerOperations.push({
         operationId,
         cb: target[name],
-        namedParameters: Swagger.registeredParamters.get(target.constructor.name + ':' + name),
-        transformers: Swagger.registeredOperations.get(target.constructor.name + ':' + name)
+        namedParameters: SwaggerServer.registeredParamters.get(target.constructor.name + ':' + name),
+        transformers: SwaggerServer.registeredOperations.get(target.constructor.name + ':' + name)
       });
     }
   },
 
   Parameter (parameterName) {
     return function (target, name, argIndex) {
-      let parameters = Swagger.registeredParamters.get(target.constructor.name + ':' + name);
+      let parameters = SwaggerServer.registeredParamters.get(target.constructor.name + ':' + name);
 
       if (!parameters) {
         parameters = [];
-        Swagger.registeredParamters.set(target.constructor.name + ':' + name, parameters);
+        SwaggerServer.registeredParamters.set(target.constructor.name + ':' + name, parameters);
       }
 
       parameters.push({
@@ -148,10 +101,10 @@ Swagger = {
 
   Transform (...transformers) {
     return function (target, name, argIndex) {
-      let operationTransformers = Swagger.registeredOperations.get(target.constructor.name + ':' + name);
+      let operationTransformers = SwaggerServer.registeredOperations.get(target.constructor.name + ':' + name);
       if (!operationTransformers) {
         operationTransformers = [];
-        Swagger.registeredOperations.set(target.constructor.name + ':' + name, operationTransformers);
+        SwaggerServer.registeredOperations.set(target.constructor.name + ':' + name, operationTransformers);
       }
 
       operationTransformers.push({
@@ -192,7 +145,7 @@ Swagger = {
     let controllers = {};
 
     this.handlers.forEach(({controller, operationId, context, cb, transformers, namedParameters}) => {
-      context = context || Swagger.instances.get(controller);
+      context = context || SwaggerServer.instances.get(controller);
 
       if (!context) {
         delete controllers[`${controller.controllerName}_${operationId}`];
@@ -209,12 +162,12 @@ Swagger = {
                 args[parameter.argIndex] = (req.swagger.params[parameter.parameterName] || {}).originalValue;
               });
 
-              if(Swagger.debug) {
-                Swagger.logger.log('debug', `#### Running handler for ${controller.controllerName}#${operationId} with params:`)
+              if(SwaggerServer.debug) {
+                SwaggerServer.logger.log('debug', `#### Running handler for ${controller.controllerName}#${operationId} with params:`)
                 for (var key of Object.keys(req.swagger.params)) {
-                  Swagger.logger.log('debug', `${key}=`,req.swagger.params[key].value)
+                  SwaggerServer.logger.log('debug', `${key}=`,req.swagger.params[key].value)
                 }
-                Swagger.logger.log('debug', `End params for ${controller.controllerName}_${operationId} ####`)
+                SwaggerServer.logger.log('debug', `End params for ${controller.controllerName}_${operationId} ####`)
               }
 
               return cb.apply(context, args);
@@ -224,13 +177,15 @@ Swagger = {
               res.end();
             })
             .catch((error) => {
-              Swagger.errorHandler ? Swagger.errorHandler(error, req, res, next) : defaultErrorHandler(error, req, res, next);
+              SwaggerServer.errorHandler ? SwaggerServer.errorHandler(error, req, res, next) : defaultErrorHandler(error, req, res, next);
             });
         }
         catch (error) {
           try {
-            Swagger.errorHandler ? Swagger.errorHandler(error, req, res, next) : defaultErrorHandler(error, req, res, next);
+            let error = new SwaggerError(500, "0", "Fatal Error: unexpected error");
+            SwaggerServer.errorHandler ? SwaggerServer.errorHandler(error, req, res, next) : defaultErrorHandler(error, req, res, next);
           } catch (e) {
+            let error = new SwaggerError(500, "0", "Fatal Error: handling error failed");
             defaultErrorHandler(error, req, res, next);
           }
         }
@@ -260,13 +215,13 @@ Swagger = {
 
     this.definitions.forEach((definition, identifier) => {
       swaggerTools.initializeMiddleware(definition, (middleware) => {
-        Swagger.externalConnectMiddlewares.forEach((middlewareFn) => {
+        SwaggerServer.externalConnectMiddlewares.forEach((middlewareFn) => {
           WebApp.connectHandlers.use(middlewareFn);
         });
 
-        if (Swagger.cors) {
+        if (SwaggerServer.cors) {
           WebApp.connectHandlers.use((err, req, res, next) => {
-            res.setHeader('Access-Control-Allow-Origin', Swagger.cors);
+            res.setHeader('Access-Control-Allow-Origin', SwaggerServer.cors);
 
             next();
           });
@@ -279,9 +234,9 @@ Swagger = {
           useStubs: this.stubs
         }));
 
-        if (Swagger.errorHandler) {
+        if (SwaggerServer.errorHandler) {
           WebApp.connectHandlers.use((err, req, res, next) => {
-            return Swagger.errorHandler(err, req, res, next);
+            return SwaggerServer.errorHandler(err, req, res, next);
           });
         }
 
@@ -294,46 +249,7 @@ Swagger = {
       });
     });
   },
-
-  createClient(name, swaggerDoc) {
-    let promise = new Promise((resolve) => {
-      let api = new swaggerClient({
-        spec: swaggerDoc,
-        success: () => {
-          _.forEach(api.apisArray, (currentApi) => {
-            let controller = api[currentApi.name];
-
-            _.forEach(controller.apis, (operationMetadata, operationKey) => {
-              let operation = controller[operationKey];
-
-              controller[operationKey] = function (...args) {
-                if (args.length === 0) {
-                  args = [{}];
-                }
-
-                if (Swagger.debug) {
-                  Swagger.logger.log('debug', "About to run operation " + operationKey + ' with transformed arguments: ', args);
-                }
-
-                return new Promise((resolve, reject) => {
-                  operation.apply(this, args.concat(resolve, reject));
-                });
-              }
-            })
-          });
-
-          resolve(api);
-        }
-      });
-    });
-
-    this.clients.set(name, promise);
-  },
-
-  client(name) {
-    return this.clients.get(name);
-  },
-
+  
   allowDocs() {
     this._allowDocs = true;
   }
@@ -343,8 +259,8 @@ function getArgsFromParams(transformers, params) {
   let promises = [];
   let index = 0;
 
-  _.forEach(params, (param) => {
-    let transformersList = _.findWhere(transformers, {argIndex: index});
+  forEach(params, (param) => {
+    let transformersList = findWhere(transformers, {argIndex: index});
 
     if (transformersList) {
       function handleTransformer(transformersContainer, tIndex, isRequired) {
@@ -352,7 +268,7 @@ function getArgsFromParams(transformers, params) {
         let transformer = (transformers || [])[tIndex];
 
         if (transformer) {
-          let transformerInstance = Swagger.instances.get(transformer);
+          let transformerInstance = SwaggerServer.instances.get(transformer);
           let returnValue = transformerInstance.transform.call(transformerInstance, param.value, param.schema.required);
 
           return Promise.resolve(returnValue)
@@ -383,4 +299,62 @@ function getArgsFromParams(transformers, params) {
   return Promise.all(promises);
 }
 
+export function writeJsonToBody(res, json) {
+  if (json !== undefined) {
+    let shouldPrettyPrint = (process.env.NODE_ENV === 'development');
+    let spacer = shouldPrettyPrint ? 2 : null;
+    let contentType = 'application/json';
+    let content = json;
 
+    if (!isObject(json) && isString(json) && (json.indexOf("<?xml") > -1 || json.indexOf("<?XML") > -1)) {
+      content = json;
+      contentType = "text/xml";
+    }
+    else if(isObject(json)) {
+      content = JSON.stringify(json, null, spacer);
+    }
+
+    res.setHeader('Content-type', contentType);
+    res.write(content);
+  }
+}
+
+export function defaultErrorHandler(err, req, res, next) {
+  if(!err) next();
+
+  let swaggerError;
+  if (err instanceof SwaggerError) {
+    swaggerError = err;
+  } else if (typeof err === "string") {
+    swaggerError = new SwaggerError(500, err, "0");
+  } else if (err instanceof Error && err.code) {
+    swaggerError = new SwaggerError(400, err.message, err.code, {
+      errors: err.results.errors
+    });
+  } else if (err instanceof Error) {
+    swaggerError = new SwaggerError(err.httpCode || 500, err.message, "0");
+  } else {
+    try {
+      if (err.toString().indexOf("Cannot resolve the configured swagger-router") != -1) {
+        SwaggerServer.logger.warn('Tried to access non-exists or disabled endpoint!', err);
+        swaggerError = new SwaggerError(404, "Tried to access non-exists or disabled endpoint", "0");
+      } else if (err.failedValidation && err.results && err.results.errors) {
+        swaggerError = new SwaggerError(err.httpCode || 400, 'Failed validation', "0", {
+          errors: err.results.errors
+        })
+      }
+    } catch (e) {
+
+    }
+  }
+
+  if(!swaggerError) {
+    swaggerError = new SwaggerError(500, 'Unexpected error', "0");
+  }
+
+  SwaggerServer.logger.error(`Error: ${swaggerError.message}`);
+
+  res.statusCode = swaggerError.httpCode;
+  writeJsonToBody(res, swaggerError);
+  res.end();
+}

@@ -1,2 +1,13 @@
 .idea
 .npm
+node_modules
+.idea/workspace.xml
+.idea/libraries
+.build
+.idea/dictionaries
+.idea/jsLibraryMappings.xml
+.idea/*.iml
+.idea/misc.xml
+.idea/modules.xml
+logs
+logs/*

@@ -1,0 +1,30 @@
+{
+  "name": "guild-swagger",
+  "version": "0.1.0",
+  "description": "Swagger for Meteor",
+  "main": "./build/index.js",
+  "typings": "./build/definitions/index.d.ts",
+  "scripts": {
+    "build": "rm -rf ./build & gulp build"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git@192.168.10.39:NovaBank/server-tools.git"
+  },
+  "author": "hlandao <hlandao@gmail.com>",
+  "license": "ISC",
+  "dependencies": {
+    "js-yaml": "3.5.3"
+  },
+  "devDependencies": {
+    "del": "^2.2.0",
+    "gulp": "^3.9.1",
+    "gulp-clean": "^0.3.2",
+    "gulp-git": "^1.7.0",
+    "gulp-typescript": "^2.13.4",
+    "gulp-typings": "^2.0.0",
+    "merge2": "^1.0.2",
+    "run-sequence": "^1.1.5",
+    "typings": "^1.0.4"
+  }
+}
