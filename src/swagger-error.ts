@@ -5,7 +5,7 @@ export class SwaggerError extends Error {
   public stack: any;
   public details: any;
 
-  constructor(httpCode: any, errorMessage: any, errorCode?: any, details?: any) {
+  constructor(httpCode: number, errorMessage: string, errorCode?: any, details?: any) {
     super(errorMessage);
     this.httpCode = httpCode;
     this.errorMessage = errorMessage;
