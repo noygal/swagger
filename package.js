@@ -25,7 +25,7 @@ Package.registerBuildPlugin({
   npmDependencies: {
     'js-yaml': '3.5.3',
     'simple-git': '1.32.1',
-    'swagger-to-typescript': 'https://github.com/hlandao/swagger-to-typescript/archive/c81ad18f845703d3c78482ce3de9cdde087a3d42.tar.gz'
+    'swagger-to-typescript': 'https://github.com/hlandao/swagger-to-typescript/archive/c118d1ba696e12c971cc8f4b7faf3663ded7850d.tar.gz'
   }
 });
 
