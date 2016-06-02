@@ -41,7 +41,7 @@ export const SwaggerServer = {
     this.cors = origin;
   },
 
-  loadServerDefinition (identifier, swaggerDefinition?) {
+  loadServerDefinition (identifier: any, swaggerDefinition?: any) {
     if(!swaggerDefinition) {
       let SwaggerConfig = global.SwaggerConfig;
       if(!SwaggerConfig) {
