@@ -7,6 +7,7 @@ export class SwaggerError extends Error {
 
   constructor(httpCode: number, errorMessage: string, errorCode?: any, details?: any) {
     super(errorMessage);
+    console.log("Creating new SwaggerError with " + httpCode + " errorMessage: " + errorMessage);
     this.httpCode = httpCode;
     this.errorMessage = errorMessage;
     this.errorCode = errorCode;
