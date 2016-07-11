@@ -182,6 +182,7 @@ export const SwaggerServer = {
         }
         catch (error) {
           try {
+            if (error instanceof SwaggerError) throw error;
             let error = new SwaggerError(500, "0", "Fatal Error: unexpected error");
             SwaggerServer.errorHandler ? SwaggerServer.errorHandler(error, req, res, next) : defaultErrorHandler(error, req, res, next);
           } catch (e) {
