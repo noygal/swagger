@@ -62,7 +62,9 @@ export class SwaggerClient<T extends SwaggerClientApi> {
                 }
 
                 if (options.debug) {
-                  options.logger.log('debug', `## SwaggerClient(${this.name}) ## About to run operation " + operationKey + ' with transformed arguments: `, args);
+                  let clonedArgs = _.clone(args);
+                  swaggerClient.getActualObjectWithEncryption(clonedArgs, true);
+                  options.logger.log('debug', `## SwaggerClient(${this.name}) ## About to run operation " + operationKey + ' with transformed arguments: `, clonedArgs);
                 }
 
                 return new Promise((resolve, reject) => {

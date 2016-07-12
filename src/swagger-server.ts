@@ -1,9 +1,11 @@
 import {SwaggerError} from './swagger-error'
 declare var _;
 
-const {forEach, findWhere, isObject, isString} = _;
+const {forEach, findWhere, isObject, isString, clone} = _;
 
 let swaggerTools = Npm.require('swagger-tools');
+let swaggerClient = Npm.require('swagger-client');
+
 let url = Npm.require('url');
 
 function inDevelopment() {
@@ -161,14 +163,6 @@ export const SwaggerServer = {
               namedParameters.forEach((parameter) => {
                 args[parameter.argIndex] = (req.swagger.params[parameter.parameterName] || {}).originalValue;
               });
-
-              if(SwaggerServer.debug) {
-                SwaggerServer.logger.log('debug', `#### Running handler for ${controller.controllerName}#${operationId} with params:`)
-                for (var key of Object.keys(req.swagger.params)) {
-                  SwaggerServer.logger.log('debug', `${key}=`,req.swagger.params[key].value)
-                }
-                SwaggerServer.logger.log('debug', `End params for ${controller.controllerName}_${operationId} ####`)
-              }
 
               return cb.apply(context, args);
             })

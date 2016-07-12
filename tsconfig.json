@@ -17,6 +17,7 @@
     "src/swagger-client.ts",
     "src/swagger-error.ts",
     "src/swagger-server.ts",
+    "src/swagger-encrypt.ts",
     "typings/index.d.ts"
   ],
 
