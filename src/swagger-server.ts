@@ -164,6 +164,12 @@ export const SwaggerServer = {
                 args[parameter.argIndex] = (req.swagger.params[parameter.parameterName] || {}).originalValue;
               });
 
+              SwaggerServer.logger.log('debug', `#### Running handler for ${controller.controllerName}#${operationId} with params:`)
+              for (var key of Object.keys(req.swagger.params)) {
+                SwaggerServer.logger.log('debug', `${key}=`,req.swagger.params[key].value)
+              }
+              SwaggerServer.logger.log('debug', `End params for ${controller.controllerName}_${operationId} ####`)
+
               return cb.apply(context, args);
             })
             .then((result) => {
