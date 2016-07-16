@@ -40,7 +40,7 @@ Package.onUse(function(api) {
   api.addFiles('src/swagger-server.ts', 'server');
   api.addFiles('src/swagger-client.ts', 'server');
   api.addFiles('src/swagger-error.ts', 'server');
-  api.mainModule("src/index.ts");
+  api.mainModule("src/index.ts", 'server');
   api.export(['SwaggerServer', 'SwaggerClient', 'SwaggerError']);
 });
 
