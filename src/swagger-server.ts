@@ -316,6 +316,7 @@ export function writeJsonToBody(res, json) {
       content = JSON.stringify(json, null, spacer);
     }
 
+    SwaggerServer.logger.debug(`### response to client... content Type: ${contentType}. data: `, content);
     res.setHeader('Content-type', contentType);
     res.write(content);
   }
