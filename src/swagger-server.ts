@@ -4,8 +4,6 @@ declare var _;
 const {forEach, findWhere, isObject, isString, clone} = _;
 
 let swaggerTools = Npm.require('swagger-tools');
-let swaggerClient = Npm.require('swagger-client');
-
 let url = Npm.require('url');
 
 function inDevelopment() {
@@ -164,16 +162,10 @@ export const SwaggerServer = {
                 args[parameter.argIndex] = (req.swagger.params[parameter.parameterName] || {}).originalValue;
               });
 
-              SwaggerServer.logger.log('debug', `#### Running handler for ${controller.controllerName}#${operationId} with params:`)
-              for (var key of Object.keys(req.swagger.params)) {
-                SwaggerServer.logger.log('debug', `${key}=`,req.swagger.params[key].value)
-              }
-              SwaggerServer.logger.log('debug', `End params for ${controller.controllerName}_${operationId} ####`)
-
               return cb.apply(context, args);
             })
             .then((result) => {
-              writeJsonToBody(res, result);
+              writeJsonToBody(req, res, result);
               res.end();
             })
             .catch((error) => {
@@ -214,6 +206,13 @@ export const SwaggerServer = {
       });
     }
 
+    const printRawLogic = _.throttle((req) => {
+      SwaggerServer.logger.log("debug", `HTTP Listener - ${req.method}: ${req.url}, with headers and body:`, {
+        headers: req.headers,
+        body: req.body || "(Empty)"
+      });
+    }, 50, {leading: true});
+
     this.definitions.forEach((definition, identifier) => {
       swaggerTools.initializeMiddleware(definition, (middleware) => {
         SwaggerServer.externalConnectMiddlewares.forEach((middlewareFn) => {
@@ -238,6 +237,16 @@ export const SwaggerServer = {
         if (SwaggerServer.errorHandler) {
           WebApp.connectHandlers.use((err, req, res, next) => {
             return SwaggerServer.errorHandler(err, req, res, next);
+          });
+        }
+
+        if (SwaggerServer.raw) {
+          WebApp.connectHandlers.use((req, res, next) => {
+            if (req.url.indexOf("docs/") === -1 && ((req.headers || {})["content-type"] || "").toLowerCase() === "application/json") {
+              printRawLogic(req);
+            }
+
+            next();
           });
         }
 
@@ -301,7 +310,7 @@ function getArgsFromParams(transformers, params) {
   return Promise.all(promises);
 }
 
-export function writeJsonToBody(res, json) {
+export function writeJsonToBody(req, res, json) {
   if (json !== undefined) {
     let shouldPrettyPrint = (process.env.NODE_ENV === 'development');
     let spacer = shouldPrettyPrint ? 2 : null;
@@ -316,8 +325,15 @@ export function writeJsonToBody(res, json) {
       content = JSON.stringify(json, null, spacer);
     }
 
-    SwaggerServer.logger.debug(`### response to client... content Type: ${contentType}. data: `, content);
     res.setHeader('Content-type', contentType);
+
+    if (SwaggerServer.raw) {
+      try {
+        SwaggerServer.logger.log("debug", `Writing response (${res.statusCode}) to client for request ${req.method} ${req.url}, response body is: `, json);
+      }
+      catch (e) {}
+    }
+
     res.write(content);
   }
 }
@@ -358,6 +374,6 @@ export function defaultErrorHandler(err, req, res, next) {
   SwaggerServer.logger.error(`Error: ${swaggerError.message}`);
 
   res.statusCode = swaggerError.httpCode;
-  writeJsonToBody(res, swaggerError);
+  writeJsonToBody(req, res, swaggerError);
   res.end();
 }
