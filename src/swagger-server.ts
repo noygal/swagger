@@ -206,19 +206,35 @@ export const SwaggerServer = {
       });
     }
 
-    const printRawLogic = _.throttle((req) => {
+    const printRawLogic = (req) => {
       SwaggerServer.logger.log("debug", `HTTP Listener - ${req.method}: ${req.url}, with headers and body:`, {
         headers: req.headers,
         body: req.body || "(Empty)"
       });
-    }, 50, {leading: true});
+    };
+
+    (SwaggerServer.externalConnectMiddlewares || []).forEach((middlewareFn) => {
+      WebApp.connectHandlers.use(middlewareFn);
+    });
+
+    if (SwaggerServer.errorHandler) {
+      WebApp.connectHandlers.use((err, req, res, next) => {
+        return SwaggerServer.errorHandler(err, req, res, next);
+      });
+    }
+
+    if (SwaggerServer.raw) {
+      WebApp.connectHandlers.use((req, res, next) => {
+        if (req.url.indexOf("docs/") === -1 && ((req.headers || {})["content-type"] || "").toLowerCase() === "application/json") {
+          printRawLogic(req);
+        }
+
+        next();
+      });
+    }
 
     this.definitions.forEach((definition, identifier) => {
       swaggerTools.initializeMiddleware(definition, (middleware) => {
-        SwaggerServer.externalConnectMiddlewares.forEach((middlewareFn) => {
-          WebApp.connectHandlers.use(middlewareFn);
-        });
-
         if (SwaggerServer.cors) {
           WebApp.connectHandlers.use((err, req, res, next) => {
             res.setHeader('Access-Control-Allow-Origin', SwaggerServer.cors);
@@ -233,22 +249,6 @@ export const SwaggerServer = {
           controllers,
           useStubs: this.stubs
         }));
-
-        if (SwaggerServer.errorHandler) {
-          WebApp.connectHandlers.use((err, req, res, next) => {
-            return SwaggerServer.errorHandler(err, req, res, next);
-          });
-        }
-
-        if (SwaggerServer.raw) {
-          WebApp.connectHandlers.use((req, res, next) => {
-            if (req.url.indexOf("docs/") === -1 && ((req.headers || {})["content-type"] || "").toLowerCase() === "application/json") {
-              printRawLogic(req);
-            }
-
-            next();
-          });
-        }
 
         if (inDevelopment() || this._allowDocs) {
           WebApp.connectHandlers.use(middleware.swaggerUi({
